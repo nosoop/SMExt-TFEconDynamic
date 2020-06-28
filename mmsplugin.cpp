@@ -9,34 +9,155 @@
 #include <stdio.h>
 #include "mmsplugin.h"
 
+#include <fcntl.h>
+#include <gelf.h>
+#include <utlmap.h>
+#include <utlstring.h>
+#include <KeyValues.h>
+#include <filesystem.h>
+
 SH_DECL_HOOK3_void(IServerGameDLL, ServerActivate, SH_NOATTRIB, 0, edict_t *, int, int);
 SH_DECL_HOOK6(IServerGameDLL, LevelInit, SH_NOATTRIB, 0, bool, char const *, char const *, char const *, char const *, bool, bool);
 
 DynSchema g_Plugin;
-IServerGameDLL *server = NULL;
+IServerGameDLL *server = nullptr;
+IVEngineServer *engine = NULL;
+IBaseFileSystem *basefilesystem = nullptr;
 
 PLUGIN_EXPOSE(DynSchema, g_Plugin);
+
+class ISchemaAttributeType;
+
+// this may need to be updated in the future
+class CEconItemAttributeDefinition
+{
+public:
+	/* 0x00 */ KeyValues *m_KeyValues;
+	/* 0x04 */ unsigned short m_iIndex;
+	/* 0x08 */ ISchemaAttributeType *m_AttributeType;
+	/* 0x0c */ bool m_bHidden;
+	/* 0x0d */ bool m_bForceOutputDescription;
+	/* 0x0e */ bool m_bStoreAsInteger;
+	/* 0x0f */ bool m_bInstanceData;
+	/* 0x10 */ int m_iAssetClassExportType;
+	/* 0x14 */ int m_iAssetClassBucket;
+	/* 0x18 */ bool m_bIsSetBonus;
+	/* 0x1c */ int m_iIsUserGenerated;
+	/* 0x20 */ int m_iEffectType;
+	/* 0x24 */ int m_iDescriptionFormat;
+	/* 0x28 */ char *m_pszDescriptionString;
+	/* 0x2c */ char *m_pszArmoryDesc;
+	/* 0x30 */ char *m_pszName;
+	/* 0x34 */ char *m_pszAttributeClass;
+	/* 0x38 */ bool m_bCanAffectMarketName;
+	/* 0x39 */ bool m_bCanAffectRecipeCompName;
+	/* 0x3c */ int m_nTagHandle;
+	/* 0x40 */ string_t m_iszAttributeClass;
+};
+
+// binary refers to 0x58 when iterating over the attribute map, so we'll refer to that value
+// we could also do a runtime assertion
+static_assert(sizeof(CEconItemAttributeDefinition) + 0x14 == 0x58, "CEconItemAttributeDefinition size mismatch");
+
+// pointer to item schema attribute map singleton
+using AttributeMap = CUtlMap<int, CEconItemAttributeDefinition, int>;
+AttributeMap *g_SchemaAttributes;
+
+using GetEconItemSchemaFn_t = uintptr_t();
+GetEconItemSchemaFn_t *fnGetEconItemSchema = nullptr;
+
+// https://www.unknowncheats.me/wiki/Calling_Functions_From_Injected_Library_Using_Function_Pointers_in_C%2B%2B
+#ifdef WIN32
+typedef bool (__thiscall *CEconItemAttributeInitFromKV_fn)(CEconItemAttributeDefinition* pThis, KeyValues* pAttributeKeys, CUtlVector<CUtlString>* pErrors);
+#elif defined(_LINUX)
+typedef bool (__cdecl *CEconItemAttributeInitFromKV_fn)(CEconItemAttributeDefinition* pThis, KeyValues* pAttributeKeys, CUtlVector<CUtlString>* pErrors);
+#endif
+CEconItemAttributeInitFromKV_fn fnItemAttributeInitFromKV = nullptr;
 
 bool DynSchema::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
 	PLUGIN_SAVEVARS();
 
-	/* Make sure we build on MM:S 1.4 */
-#if defined METAMOD_PLAPI_VERSION
+	GET_V_IFACE_CURRENT(GetEngineFactory, engine, IVEngineServer, INTERFACEVERSION_VENGINESERVER);
 	GET_V_IFACE_ANY(GetServerFactory, server, IServerGameDLL, INTERFACEVERSION_SERVERGAMEDLL);
-#else
-	GET_V_IFACE_ANY(serverFactory, server, IServerGameDLL, INTERFACEVERSION_SERVERGAMEDLL);
-#endif
+	GET_V_IFACE_CURRENT(GetFileSystemFactory, basefilesystem, IBaseFileSystem, BASEFILESYSTEM_INTERFACE_VERSION);
 
 	SH_ADD_HOOK_MEMFUNC(IServerGameDLL, LevelInit, server, this, &DynSchema::Hook_LevelInitPost, true);
+
+	// get the base address of the server
+	// TODO windows support
+	Dl_info info;
+	if (!dladdr(server, &info)) {
+		return false;
+	}
+	
+	// locate symbols within our server binary
+	Elf_Scn     *scn = NULL;
+	GElf_Shdr   shdr;
+
+	elf_version(EV_CURRENT);
+
+	int fd = open(info.dli_fname, O_RDONLY);
+	Elf *elf = elf_begin(fd, ELF_C_READ, NULL);
+
+	while ((scn = elf_nextscn(elf, scn)) != NULL) {
+		gelf_getshdr(scn, &shdr);
+		if (shdr.sh_type == SHT_SYMTAB) {
+			break;
+		}
+	}
+
+	Elf_Data *data = elf_getdata(scn, NULL);
+	size_t count = shdr.sh_size / shdr.sh_entsize;
+
+	/* print the symbol names */
+	for (size_t ii = 0; ii < count; ++ii) {
+		GElf_Sym sym;
+		gelf_getsym(data, ii, &sym);
+		
+		const char *symname = elf_strptr(elf, shdr.sh_link, sym.st_name);
+		if (!strcmp(symname,
+				"_ZN28CEconItemAttributeDefinition11BInitFromKVEP9KeyValuesP10CUtlVectorI10CUtlString10CUtlMemoryIS3_iEE")) {
+			fnItemAttributeInitFromKV = (CEconItemAttributeInitFromKV_fn) (reinterpret_cast<uintptr_t>(info.dli_fbase) + sym.st_value);
+		} else if (!strcmp(symname, "_Z15GEconItemSchemav")) {
+			fnGetEconItemSchema = reinterpret_cast<GetEconItemSchemaFn_t*>(reinterpret_cast<uintptr_t>(info.dli_fbase) + sym.st_value);
+		}
+	}
+	elf_end(elf);
+	close(fd);
+	
+	if (!fnItemAttributeInitFromKV || !fnGetEconItemSchema) {
+		META_CONPRINTF("Failed to get either GEconItemSchema or BInitFromKeyValues\n");
+		return false;
+	}
+	
+	// is this late enough in the MM:S load stage?  we might just have to hold the function
+	g_SchemaAttributes = reinterpret_cast<AttributeMap*>(fnGetEconItemSchema() + 0x1BC);
 
 	return true;
 }
 
-bool DynSchema::Unload(char *error, size_t maxlen)
-{
+bool DynSchema::Unload(char *error, size_t maxlen) {
 	SH_REMOVE_HOOK_MEMFUNC(IServerGameDLL, LevelInit, server, this, &DynSchema::Hook_LevelInitPost, true);
+	return true;
+}
 
+bool AddAttribute(KeyValues *pAttribKV) {
+	int attrdef = atoi(pAttribKV->GetName());
+	
+	// TODO add a copy of these tests in native
+	if (attrdef <= 0) {
+		return false;
+	}
+	
+	if (g_SchemaAttributes->IsValidIndex(g_SchemaAttributes->Find(attrdef))) {
+		return false;
+	}
+	
+	CEconItemAttributeDefinition def;
+	fnItemAttributeInitFromKV(&def, pAttribKV, nullptr);
+	
+	g_SchemaAttributes->Insert(attrdef, def);
 	return true;
 }
 
@@ -47,6 +168,28 @@ bool DynSchema::Hook_LevelInitPost(const char *pMapName, char const *pMapEntitie
 	// TODO determine if the schema was updated, we can do this by:
 	// - adding a sentinel attribute that we test the existence of later, or
 	// - check in LevelInitPre if we have a non-null CEconItemSchema::m_pDelayedSchemaData
+	
+	// TODO create a map of existing attribute names
+	
+	char game_path[256];
+	engine->GetGameDir(game_path, sizeof(game_path));
+	
+	char buffer[1024];
+	g_SMAPI->PathFormat(buffer, sizeof(buffer), "%s/%s",
+			game_path, "addons/dynattrs/items_dynamic.txt");
+	
+	KeyValues::AutoDelete pItemKV("DynamicSchema");
+	if (pItemKV->LoadFromFile(basefilesystem, buffer)) {
+		KeyValues *pKVAttributes = pItemKV->FindKey( "attributes" );
+		if (pKVAttributes) {
+			FOR_EACH_TRUE_SUBKEY(pKVAttributes, pKVAttribute) {
+				AddAttribute(pKVAttribute);
+			}
+		}
+		META_CONPRINTF("Successfully injected custom schema %s\n", buffer);
+	} else {
+		META_CONPRINTF("Failed to locate not inject custom schema %s\n", buffer);
+	}
 	
 	return true;
 }
@@ -86,7 +229,7 @@ const char *DynSchema::GetAuthor() {
 }
 
 const char *DynSchema::GetDescription() {
-	return "Injects user-defined attributes into the game schema";
+	return "Injects user-defined content into the game schema";
 }
 
 const char *DynSchema::GetName() {
