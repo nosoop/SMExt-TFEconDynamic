@@ -275,7 +275,10 @@ class MMSConfig(object):
         '-lc++',
         '-mmacosx-version-min=10.9',
       ]
-    # elif builder.target.platform == 'windows': # todo: implement MSVC support
+    elif builder.target.platform == 'windows':
+      cxx.defines += [
+        'WINDOWS',
+      ]
 
   def HL2Compiler(self, context, sdk, arch):
     compiler = context.cxx.clone()
