@@ -14,12 +14,7 @@
 #include <KeyValues.h>
 #include <filesystem.h>
 
-#if WINDOWS
-#include <windows.h>
-#elif _LINUX
-#include <fcntl.h>
-#include <gelf.h>
-#endif
+#include "memscan.h"
 
 SH_DECL_HOOK3_void(IServerGameDLL, ServerActivate, SH_NOATTRIB, 0, edict_t *, int, int);
 SH_DECL_HOOK6(IServerGameDLL, LevelInit, SH_NOATTRIB, 0, bool, char const *, char const *, char const *, char const *, bool, bool);
@@ -79,26 +74,6 @@ typedef bool (__cdecl *CEconItemAttributeInitFromKV_fn)(CEconItemAttributeDefini
 #endif
 CEconItemAttributeInitFromKV_fn fnItemAttributeInitFromKV = nullptr;
 
-uintptr_t FindPattern(uintptr_t start, uintptr_t end, const char* pattern, size_t length) {
-	uintptr_t ptr = start;
-	bool f;
-	while (ptr < end - length) {
-		f = true;
-		const char* cur = reinterpret_cast<char*>(ptr);
-		for (register size_t i = 0; i < length; i++) {
-			if (pattern[i] != '\x2A' && pattern[i] != cur[i]) {
-				f = false;
-				break;
-			}
-		}
-		if (f) {
-			return ptr;
-		}
-		ptr++;
-	}
-	return 0;
-}
-
 bool DynSchema::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
 	PLUGIN_SAVEVARS();
@@ -110,59 +85,17 @@ bool DynSchema::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	SH_ADD_HOOK_MEMFUNC(IServerGameDLL, LevelInit, server, this, &DynSchema::Hook_LevelInitPost, true);
 
 	// get the base address of the server
-	// TODO windows support
 #if WINDOWS
-	MEMORY_BASIC_INFORMATION info;
-	if (!VirtualQuery(server, &info, sizeof(MEMORY_BASIC_INFORMATION))) {
-		return false;
-	}
-	uintptr_t base = reinterpret_cast<uintptr_t>(info.AllocationBase);
-	IMAGE_DOS_HEADER *dos = reinterpret_cast<IMAGE_DOS_HEADER *>(base);
-	IMAGE_NT_HEADERS *pe = reinterpret_cast<IMAGE_NT_HEADERS *>(base + dos->e_lfanew);
-	IMAGE_OPTIONAL_HEADER *opt = &pe->OptionalHeader;
-	size_t size = opt->SizeOfImage;
+	CWinLibInfo lib(server);
 	
-	fnGetEconItemSchema = (GetEconItemSchemaFn_t*) (FindPattern(base, base + size, "\xE8\x2A\x2A\x2A\x2A\x83\xC0\x04\xC3", 9));
-	fnItemAttributeInitFromKV = (CEconItemAttributeInitFromKV_fn) (FindPattern(base, base + size, "\x55\x8B\xEC\x53\x8B\x5D\x08\x56\x8B\xF1\x8B\xCB\x57\xE8\x2A\x2A\x2A\x2A", 18));
+	lib.LocatePattern("\xE8\x2A\x2A\x2A\x2A\x83\xC0\x04\xC3", 9, (void**) &fnGetEconItemSchema);
+	lib.LocatePattern("\x55\x8B\xEC\x53\x8B\x5D\x08\x56\x8B\xF1\x8B\xCB\x57\xE8\x2A\x2A\x2A\x2A", 18, (void**) &fnItemAttributeInitFromKV);
 #elif _LINUX
-	Dl_info info;
-	if (!dladdr(server, &info)) {
-		return false;
-	}
+	CLinuxLibInfo lib(server);
 	
-	// locate symbols within our server binary
-	elf_version(EV_CURRENT);
-
-	int fd = open(info.dli_fname, O_RDONLY);
-	Elf *elf = elf_begin(fd, ELF_C_READ, NULL);
-
-	Elf_Scn *scn = NULL;
-	GElf_Shdr shdr;
-	while ((scn = elf_nextscn(elf, scn)) != NULL) {
-		gelf_getshdr(scn, &shdr);
-		if (shdr.sh_type == SHT_SYMTAB) {
-			break;
-		}
-	}
-
-	Elf_Data *data = elf_getdata(scn, NULL);
-	size_t count = shdr.sh_size / shdr.sh_entsize;
-
-	/* print the symbol names */
-	for (size_t i = 0; i < count; ++i) {
-		GElf_Sym sym;
-		gelf_getsym(data, i, &sym);
-		
-		const char *symname = elf_strptr(elf, shdr.sh_link, sym.st_name);
-		if (!strcmp(symname,
-				"_ZN28CEconItemAttributeDefinition11BInitFromKVEP9KeyValuesP10CUtlVectorI10CUtlString10CUtlMemoryIS3_iEE")) {
-			fnItemAttributeInitFromKV = (CEconItemAttributeInitFromKV_fn) (reinterpret_cast<uintptr_t>(info.dli_fbase) + sym.st_value);
-		} else if (!strcmp(symname, "_Z15GEconItemSchemav")) {
-			fnGetEconItemSchema = reinterpret_cast<GetEconItemSchemaFn_t*>(reinterpret_cast<uintptr_t>(info.dli_fbase) + sym.st_value);
-		}
-	}
-	elf_end(elf);
-	close(fd);
+	lib.LocateSymbol("_ZN28CEconItemAttributeDefinition11BInitFromKVEP9KeyValuesP10CUtlVectorI10CUtlString10CUtlMemoryIS3_iEE",
+			(void**) &fnItemAttributeInitFromKV);
+	lib.LocateSymbol("_Z15GEconItemSchemav", (void**) &fnGetEconItemSchema);
 #endif
 	
 	if (!fnItemAttributeInitFromKV || !fnGetEconItemSchema) {
@@ -252,7 +185,7 @@ const char *DynSchema::GetLicense() {
 }
 
 const char *DynSchema::GetVersion() {
-	return "1.0.1";
+	return "1.0.2";
 }
 
 const char *DynSchema::GetDate() {

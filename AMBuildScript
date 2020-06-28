@@ -1,6 +1,7 @@
 proj_name = 'tf2dynschema'
 proj_srcs = [
   'mmsplugin.cpp',
+  'memscan.cpp',
 ]
 proj_c_flags = [
   '-Wall',
