@@ -22,7 +22,7 @@ SH_DECL_HOOK6(IServerGameDLL, LevelInit, SH_NOATTRIB, 0, bool, char const *, cha
 DynSchema g_Plugin;
 IServerGameDLL *server = nullptr;
 IVEngineServer *engine = NULL;
-IBaseFileSystem *basefilesystem = nullptr;
+IFileSystem *filesystem = nullptr;
 
 PLUGIN_EXPOSE(DynSchema, g_Plugin);
 
@@ -77,13 +77,15 @@ typedef bool (__cdecl *CEconItemAttributeInitFromKV_fn)(CEconItemAttributeDefini
 #endif
 CEconItemAttributeInitFromKV_fn fnItemAttributeInitFromKV = nullptr;
 
+const char* NATIVE_ATTRIB_DIR = "addons/sourcemod/configs/tf2nativeattribs";
+
 bool DynSchema::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
 	PLUGIN_SAVEVARS();
 
 	GET_V_IFACE_CURRENT(GetEngineFactory, engine, IVEngineServer, INTERFACEVERSION_VENGINESERVER);
 	GET_V_IFACE_ANY(GetServerFactory, server, IServerGameDLL, INTERFACEVERSION_SERVERGAMEDLL);
-	GET_V_IFACE_CURRENT(GetFileSystemFactory, basefilesystem, IBaseFileSystem, BASEFILESYSTEM_INTERFACE_VERSION);
+	GET_V_IFACE_CURRENT(GetFileSystemFactory, filesystem, IFileSystem, FILESYSTEM_INTERFACE_VERSION);
 
 	SH_ADD_HOOK_MEMFUNC(IServerGameDLL, LevelInit, server, this, &DynSchema::Hook_LevelInitPost, true);
 
@@ -153,18 +155,47 @@ bool DynSchema::Hook_LevelInitPost(const char *pMapName, char const *pMapEntitie
 			game_path, "addons/dynattrs/items_dynamic.txt");
 	
 	// always initialize attributes -- it's better than losing attributes on schema reinit
-	KeyValues::AutoDelete pItemKV("DynamicSchema");
-	if (pItemKV->LoadFromFile(basefilesystem, buffer)) {
+	
+	// collect raw attribute keyvalue entries scattered across files
+	KeyValues::AutoDelete rawAttributes("attributes");
+	
+	// read our own dynamic schema file -- this one supports other sections
+	KeyValues::AutoDelete pKVMainConfig("DynamicSchema");
+	if (pKVMainConfig->LoadFromFile(filesystem, buffer)) {
 		// TODO check for devattribs folder and import KVs from there, then do a final pass
-		KeyValues *pKVAttributes = pItemKV->FindKey( "attributes" );
+		KeyValues *pKVAttributes = pKVMainConfig->FindKey( "attributes" );
 		if (pKVAttributes) {
-			FOR_EACH_TRUE_SUBKEY(pKVAttributes, pKVAttribute) {
-				InsertOrReplaceAttribute(pKVAttribute);
-			}
+			rawAttributes->RecursiveMergeKeyValues(pKVAttributes);
+			META_CONPRINTF("Successfully injected custom schema %s\n", buffer);
+		} else {
+			META_CONPRINTF("Failed to inject custom schema %s\n", buffer);
 		}
-		META_CONPRINTF("Successfully injected custom schema %s\n", buffer);
-	} else {
-		META_CONPRINTF("Failed to inject custom schema %s\n", buffer);
+	}
+	
+	// iterate over TF2 Hidden Dev Attributes KV format
+	// https://forums.alliedmods.net/showthread.php?t=326853
+	g_SMAPI->PathFormat(buffer, sizeof(buffer), "%s/%s/*", game_path, NATIVE_ATTRIB_DIR);
+	FileFindHandle_t findHandle;
+	const char *filename = filesystem->FindFirst(buffer, &findHandle);
+	while (filename) {
+		char pathbuf[1024];
+		g_SMAPI->PathFormat(pathbuf, sizeof(pathbuf), "%s/%s/%s", game_path,
+				NATIVE_ATTRIB_DIR, filename);
+		if (!filesystem->FindIsDirectory(findHandle)) {
+			KeyValues::AutoDelete nativeAttribConfig("attributes");
+			nativeAttribConfig->LoadFromFile(filesystem, pathbuf);
+			
+			rawAttributes->RecursiveMergeKeyValues(nativeAttribConfig);
+			
+			META_CONPRINTF("Discovered custom schema %s\n", pathbuf);
+		}
+		filename = filesystem->FindNext(findHandle);
+	}
+	filesystem->FindClose(findHandle);
+	
+	// finally process our attributes
+	FOR_EACH_TRUE_SUBKEY(rawAttributes, kv) {
+		InsertOrReplaceAttribute(kv);
 	}
 	
 	return true;
@@ -189,7 +220,7 @@ const char *DynSchema::GetLicense() {
 }
 
 const char *DynSchema::GetVersion() {
-	return "1.1.0";
+	return "1.2.0";
 }
 
 const char *DynSchema::GetDate() {
