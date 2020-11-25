@@ -32,6 +32,9 @@ class ISchemaAttributeType;
 class CEconItemAttributeDefinition
 {
 public:
+	// TODO implementing ~CEconItemAttributeDefinition segfaults. not sure what's up.
+	// ideally we implement it to match the game so InsertOrReplace is sure to work correctly
+	
 	/* 0x00 */ KeyValues *m_KeyValues;
 	/* 0x04 */ unsigned short m_iIndex;
 	/* 0x08 */ ISchemaAttributeType *m_AttributeType;
@@ -114,35 +117,34 @@ bool DynSchema::Unload(char *error, size_t maxlen) {
 	return true;
 }
 
-bool AddAttribute(KeyValues *pAttribKV) {
+/**
+ * Initializes a CEconItemAttributeDefinition from a KeyValues definition, then inserts or
+ * replaces the appropriate entry in the schema.
+ */
+bool InsertOrReplaceAttribute(KeyValues *pAttribKV) {
 	int attrdef = atoi(pAttribKV->GetName());
 	
-	// TODO add a copy of these tests in native
 	if (attrdef <= 0) {
 		return false;
 	}
 	
-	if (g_SchemaAttributes->IsValidIndex(g_SchemaAttributes->Find(attrdef))) {
-		return false;
-	}
+	// TODO only replace injected attribute if it exists
+	
+	// embed additional custom data into attribute KV; econdata and the like can deal with this
+	// one could also add this data into the file itself, but this leaves less room for error
+	pAttribKV->SetBool("injected", true);
 	
 	CEconItemAttributeDefinition def;
 	fnItemAttributeInitFromKV(&def, pAttribKV, nullptr);
 	
-	g_SchemaAttributes->Insert(attrdef, def);
+	// TODO verify that this doesn't leak, or just shrug it off
+	g_SchemaAttributes->InsertOrReplace(attrdef, def);
 	return true;
 }
 
 bool DynSchema::Hook_LevelInitPost(const char *pMapName, char const *pMapEntities,
 		char const *pOldLevel, char const *pLandmarkName, bool loadGame, bool background) {
 	// this hook should fire shortly after the schema is (re)initialized
-	
-	// TODO determine if the schema was updated, we can do this by:
-	// - adding a sentinel attribute that we test the existence of later, or
-	// - check in LevelInitPre if we have a non-null CEconItemSchema::m_pDelayedSchemaData
-	
-	// TODO create a map of existing attribute names
-	
 	char game_path[256];
 	engine->GetGameDir(game_path, sizeof(game_path));
 	
@@ -150,12 +152,14 @@ bool DynSchema::Hook_LevelInitPost(const char *pMapName, char const *pMapEntitie
 	g_SMAPI->PathFormat(buffer, sizeof(buffer), "%s/%s",
 			game_path, "addons/dynattrs/items_dynamic.txt");
 	
+	// always initialize attributes -- it's better than losing attributes on schema reinit
 	KeyValues::AutoDelete pItemKV("DynamicSchema");
 	if (pItemKV->LoadFromFile(basefilesystem, buffer)) {
+		// TODO check for devattribs folder and import KVs from there, then do a final pass
 		KeyValues *pKVAttributes = pItemKV->FindKey( "attributes" );
 		if (pKVAttributes) {
 			FOR_EACH_TRUE_SUBKEY(pKVAttributes, pKVAttribute) {
-				AddAttribute(pKVAttribute);
+				InsertOrReplaceAttribute(pKVAttribute);
 			}
 		}
 		META_CONPRINTF("Successfully injected custom schema %s\n", buffer);
@@ -185,7 +189,7 @@ const char *DynSchema::GetLicense() {
 }
 
 const char *DynSchema::GetVersion() {
-	return "1.0.2";
+	return "1.1.0";
 }
 
 const char *DynSchema::GetDate() {
