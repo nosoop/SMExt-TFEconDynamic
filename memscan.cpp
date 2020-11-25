@@ -94,7 +94,7 @@ bool CLinuxLibInfo::LocateSymbol(const char* name, void** result) {
 		gelf_getsym(data, i, &sym);
 		
 		const char *symname = elf_strptr(this->m_Elf, shdr.sh_link, sym.st_name);
-		if (!strcmp(symname, name)) {
+		if (symname && !strcmp(symname, name)) {
 			*result = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(m_info.dli_fbase) + sym.st_value);
 			return true;
 		}
