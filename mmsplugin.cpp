@@ -124,13 +124,26 @@ bool DynSchema::Unload(char *error, size_t maxlen) {
  * replaces the appropriate entry in the schema.
  */
 bool InsertOrReplaceAttribute(KeyValues *pAttribKV) {
+	/**
+	 * TODO implement special handling when "auto" is provided; use an autoincrementing value
+	 * that checks for a free slot in the attribute mapping, then internally map the attribute
+	 * name to that value for persistence and so we don't add that attribute multiple times
+	 */
 	int attrdef = atoi(pAttribKV->GetName());
-	
 	if (attrdef <= 0) {
 		return false;
 	}
 	
-	// TODO only replace injected attribute if it exists
+	// only replace existing injected attributes; fail on schema attributes
+	auto existingIndex = g_SchemaAttributes->Find(attrdef);
+	if (existingIndex != g_SchemaAttributes->InvalidIndex()) {
+		auto &existingAttr = g_SchemaAttributes->Element(existingIndex);
+		if (!existingAttr.m_KeyValues->GetBool("injected")) {
+			META_CONPRINTF("WARN: Not overriding native attribute '%s'\n",
+					existingAttr.m_pszName);
+			return false;
+		}
+	}
 	
 	// embed additional custom data into attribute KV; econdata and the like can deal with this
 	// one could also add this data into the file itself, but this leaves less room for error
@@ -155,6 +168,7 @@ bool DynSchema::Hook_LevelInitPost(const char *pMapName, char const *pMapEntitie
 			game_path, "addons/dynattrs/items_dynamic.txt");
 	
 	// always initialize attributes -- it's better than losing attributes on schema reinit
+	// coughhiddendevattributescough
 	
 	// collect raw attribute keyvalue entries scattered across files
 	KeyValues::AutoDelete rawAttributes("attributes");
@@ -162,7 +176,6 @@ bool DynSchema::Hook_LevelInitPost(const char *pMapName, char const *pMapEntitie
 	// read our own dynamic schema file -- this one supports other sections
 	KeyValues::AutoDelete pKVMainConfig("DynamicSchema");
 	if (pKVMainConfig->LoadFromFile(filesystem, buffer)) {
-		// TODO check for devattribs folder and import KVs from there, then do a final pass
 		KeyValues *pKVAttributes = pKVMainConfig->FindKey( "attributes" );
 		if (pKVAttributes) {
 			rawAttributes->RecursiveMergeKeyValues(pKVAttributes);
@@ -193,6 +206,9 @@ bool DynSchema::Hook_LevelInitPost(const char *pMapName, char const *pMapEntitie
 	}
 	filesystem->FindClose(findHandle);
 	
+	// perhaps add some other validations before we actually process our attributes?
+	// TODO ensure the name doesn't clash with existing / newly injected attributes
+	
 	// finally process our attributes
 	FOR_EACH_TRUE_SUBKEY(rawAttributes, kv) {
 		InsertOrReplaceAttribute(kv);
@@ -220,7 +236,7 @@ const char *DynSchema::GetLicense() {
 }
 
 const char *DynSchema::GetVersion() {
-	return "1.2.0";
+	return "1.2.1";
 }
 
 const char *DynSchema::GetDate() {
