@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <cstdint>
 
-#if WINDOWS
+#if _WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #elif _LINUX
@@ -23,7 +23,7 @@ protected:
 	bool m_bValid;
 };
 
-#if WINDOWS
+#if _WINDOWS
 class CWinLibInfo : public ILibInfo {
 public:
 	CWinLibInfo(void* pInBase);

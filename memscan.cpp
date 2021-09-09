@@ -19,7 +19,7 @@ uintptr_t FindPattern(uintptr_t start, uintptr_t end, const char* pattern, size_
 	return 0;
 }
 
-#if WINDOWS
+#if _WINDOWS
 CWinLibInfo::CWinLibInfo(void* pInBase) {
 	MEMORY_BASIC_INFORMATION info;
 	if (!VirtualQuery(pInBase, &info, sizeof(MEMORY_BASIC_INFORMATION))) {

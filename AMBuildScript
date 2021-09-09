@@ -1,24 +1,3 @@
-proj_name = 'tf2dynschema'
-proj_srcs = [
-  'mmsplugin.cpp',
-  'memscan.cpp',
-]
-proj_c_flags = [
-  '-Wall',
-  '-Wno-non-virtual-dtor',
-  '-Wno-overloaded-virtual',
-  '-Werror',
-]
-proj_c_flags_opt = [
-  '-O3',
-  '-funroll-loops',
-  '-pipe',
-]
-proj_c_flags_dbg = [
-  '-g',
-  '-ggdb3',
-]
-
 import os, sys
 
 class SDK(object):
@@ -59,28 +38,7 @@ Source2 = {
 }
 
 PossibleSDKs = {
-  'episode1':  SDK('HL2SDK', '2.ep1', '1', 'EPISODEONE', WinLinux, 'episode1'),
-  'ep2':  SDK('HL2SDKOB', '2.ep2', '3', 'ORANGEBOX', WinLinux, 'orangebox'),
-  'css':  SDK('HL2SDKCSS', '2.css', '6', 'CSS', WinLinuxMac, 'css'),
-  'hl2dm':  SDK('HL2SDKHL2DM', '2.hl2dm', '7', 'HL2DM', WinLinuxMac, 'hl2dm'),
-  'dods': SDK('HL2SDKDODS', '2.dods', '8', 'DODS', WinLinuxMac, 'dods'),
-  'sdk2013': SDK('HL2SDK2013', '2.sdk2013', '9', 'SDK2013', WinLinuxMac, 'sdk2013'),
   'tf2':  SDK('HL2SDKTF2', '2.tf2', '11', 'TF2', WinLinuxMac, 'tf2'),
-  'l4d':  SDK('HL2SDKL4D', '2.l4d', '12', 'LEFT4DEAD', WinLinuxMac, 'l4d'),
-  'nucleardawn': SDK('HL2SDKND', '2.nd', '13', 'NUCLEARDAWN', WinLinuxMac, 'nucleardawn'),
-  'l4d2': SDK('HL2SDKL4D2', '2.l4d2', '15', 'LEFT4DEAD2', WinLinuxMac, 'l4d2'),
-  'darkm':  SDK('HL2SDK-DARKM', '2.darkm', '2', 'DARKMESSIAH', WinOnly, 'darkm'),
-  'swarm':  SDK('HL2SDK-SWARM', '2.swarm', '16', 'ALIENSWARM', WinOnly, 'swarm'),
-  'bgt':  SDK('HL2SDK-BGT', '2.bgt', '4', 'BLOODYGOODTIME', WinOnly, 'bgt'),
-  'eye':  SDK('HL2SDK-EYE', '2.eye', '5', 'EYE', WinOnly, 'eye'),
-  'csgo': SDK('HL2SDKCSGO', '2.csgo', '21', 'CSGO', CSGO, 'csgo'),
-  'dota': SDK('HL2SDKDOTA', '2.dota', '22', 'DOTA', Source2, 'dota'),
-  'portal2':  SDK('HL2SDKPORTAL2', '2.portal2', '17', 'PORTAL2', [], 'portal2'),
-  'blade':  SDK('HL2SDKBLADE', '2.blade', '18', 'BLADE', WinLinux, 'blade'),
-  'insurgency':  SDK('HL2SDKINSURGENCY', '2.insurgency', '19', 'INSURGENCY', WinLinuxMac, 'insurgency'),
-  'doi':  SDK('HL2SDKDOI', '2.doi', '20', 'DOI', WinLinuxMac, 'doi'),
-  'contagion':  SDK('HL2SDKCONTAGION', '2.contagion', '14', 'CONTAGION', WinOnly, 'contagion'),
-  'bms':  SDK('HL2SDKBMS', '2.bms', '10', 'BMS', WinLinux, 'bms'),
 }
 
 def ResolveEnvPath(env, folder):
@@ -156,7 +114,7 @@ class MMSConfig(object):
           sdk_path = os.path.join(builder.options.hl2sdk_root, sdk.folder)
         else:
           sdk_path = ResolveEnvPath(sdk.envvar, sdk.folder)
-        if sdk_path is None:
+        if sdk_path is None or not os.path.isdir(sdk_path):
           if use_all or sdk_name in sdk_list:
             raise Exception('Could not find a valid path for {0}'.format(sdk.envvar))
           continue
@@ -276,10 +234,7 @@ class MMSConfig(object):
         '-lc++',
         '-mmacosx-version-min=10.9',
       ]
-    elif builder.target.platform == 'windows':
-      cxx.defines += [
-        'WINDOWS',
-      ]
+    # elif builder.target.platform == 'windows': # todo: implement MSVC support
 
   def HL2Compiler(self, context, sdk, arch):
     compiler = context.cxx.clone()
@@ -401,7 +356,7 @@ class MMSConfig(object):
 
     dynamic_libs = [] # todo: this whole section is slightly different, but I imagine it is "more correct"
     if builder.target.platform == 'linux':
-      binary.compiler.linkflags[0:0] = ['-lm', '-ldl', '-lelf'] # todo: do we need -ldl?
+      compiler.linkflags[0:0] = ['-lm', '-ldl'] # todo: do we need -ldl?
       if sdk.name in ['css', 'hl2dm', 'dods', 'tf2', 'sdk2013', 'bms', 'nucleardawn', 'l4d2', 'insurgency', 'doi']:
         dynamic_libs = ['libtier0_srv.so', 'libvstdlib_srv.so']
       elif arch == 'x64' and sdk.name == 'csgo':
@@ -447,25 +402,18 @@ MMS.detectProductVersion()
 MMS.detectSDKs()
 MMS.configure()
 
-BuildScripts = [] # add sub-modules here
+BuildScripts = [
+  'AMBuilder'
+]
+
 if getattr(builder.options, 'enable_tests', False):
     BuildScripts += [] # add tests here
 
 import os
 
-for sdk_name in MMS.sdks:
-  for arch in MMS.archs:
-    sdk = MMS.sdks[sdk_name]
-
-    if not arch in sdk.platformSpec[builder.target.platform]:
-      continue
-
-    name = proj_name + '.' + sdk.ext
-    binary = MMS.HL2Library(builder, name, sdk, arch)
-
-    binary.sources += proj_srcs
-
-    nodes = builder.Add(binary)
-    MMS.binaries += [nodes]
+if builder.backend == 'amb2':
+  BuildScripts += [
+    'PackageScript',
+  ]
 
 builder.Build(BuildScripts, { 'MMS': MMS })

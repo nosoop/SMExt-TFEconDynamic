@@ -88,7 +88,7 @@ bool DynSchema::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	SH_ADD_HOOK_MEMFUNC(IServerGameDLL, LevelInit, server, this, &DynSchema::Hook_LevelInitPost, true);
 
 	// get the base address of the server
-#if WINDOWS
+#if _WINDOWS
 	CWinLibInfo lib(server);
 	
 	lib.LocatePattern("\xE8\x2A\x2A\x2A\x2A\x83\xC0\x04\xC3", 9, (void**) &fnGetEconItemSchema);
