@@ -15,7 +15,7 @@ for sdk_name in MMS.sdks:
     if not arch in sdk.platformSpec[builder.target.platform]:
       continue
 
-    name = proj_name + '.' + sdk.ext
+    name = proj_name + '_mm'
     binary = MMS.HL2Library(builder, name, sdk, arch)
 
     binary.sources += proj_srcs
