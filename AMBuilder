@@ -8,6 +8,9 @@ proj_srcs = [
   'memscan.cpp',
 ]
 
+proj_c_flags = [
+]
+
 for sdk_name in MMS.sdks:
   for arch in MMS.archs:
     sdk = MMS.sdks[sdk_name]
