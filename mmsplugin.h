@@ -16,12 +16,17 @@
 #define _INCLUDE_METAMOD_SOURCE_STUB_PLUGIN_H_
 
 #include <ISmmPlugin.h>
+#include <smsdk_config.h>
 
 #if defined WIN32 && !defined snprintf
 #define snprintf _snprintf
 #endif
 
-class DynSchema : public ISmmPlugin
+using SourceMod::IExtension;
+using SourceMod::IShareSys;
+using SourceMod::IExtensionManager;
+
+class DynSchema : public ISmmPlugin, public SourceMod::IExtensionInterface, public IMetamodListener
 {
 public:
 	bool Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late);
@@ -32,6 +37,8 @@ public:
 	
 	bool Hook_LevelInitPost(const char *pMapName, char const *pMapEntities, char const *pOldLevel,
 			char const *pLandmarkName, bool loadGame, bool background);
+	
+	void *OnMetamodQuery(const char* iface, int *ret);
 public:
 	const char *GetAuthor();
 	const char *GetName();
@@ -41,9 +48,29 @@ public:
 	const char *GetVersion();
 	const char *GetDate();
 	const char *GetLogTag();
+	
+public:
+	virtual bool OnExtensionLoad(IExtension *me, IShareSys *sys, char* error, size_t maxlength, bool late);
+	virtual void OnExtensionUnload();
+	virtual void OnExtensionsAllLoaded();
+	virtual void OnExtensionPauseChange(bool pause);
+	virtual bool QueryRunning(char *error, size_t maxlength);
+	virtual bool IsMetamodExtension();
+	virtual const char *GetExtensionName();
+	virtual const char *GetExtensionURL();
+	virtual const char *GetExtensionTag();
+	virtual const char *GetExtensionAuthor();
+	virtual const char *GetExtensionVerString();
+	virtual const char *GetExtensionDescription();
+	virtual const char *GetExtensionDateString();
 };
 
 extern DynSchema g_Plugin;
+
+extern SourceMod::IExtensionManager *smexts;
+
+extern SourceMod::IShareSys *sharesys;
+extern SourceMod::IExtension *myself;
 
 PLUGIN_GLOBALVARS();
 

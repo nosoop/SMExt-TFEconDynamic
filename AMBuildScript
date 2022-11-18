@@ -85,6 +85,7 @@ class MMSConfig(object):
     self.binaries = []
     self.generated_headers = None
     self.archs = builder.target.arch.replace('x86_64', 'x64').split(',')
+    self.sm_path = builder.options.sm_path or None
 
   def detectProductVersion(self):
     builder.AddConfigureFile('product.version')
@@ -289,6 +290,15 @@ class MMSConfig(object):
     if sdk.name in ['css', 'hl2dm', 'dods', 'sdk2013', 'bms', 'tf2', 'l4d', 'nucleardawn', 'l4d2', 'dota', 'pvkii']:
       if builder.target.platform in ['linux', 'mac']:
         compiler.defines += ['NO_HOOK_MALLOC', 'NO_MALLOC_OVERRIDE']
+
+    if not builder.options.sm_path:
+      raise Exception('SourceMod path is missing. Supply a --sm_path flag')
+    paths.extend([
+      [ builder.options.sm_path, 'public' ],
+      [ builder.options.sm_path, 'public', 'amtl' ],
+      [ builder.options.sm_path, 'public', 'amtl', 'amtl' ],
+      [ builder.options.sm_path, 'sourcepawn', 'include' ],
+    ])
 
     for path in paths:
       compiler.cxxincludes += [os.path.join(sdk.path, *path)]
