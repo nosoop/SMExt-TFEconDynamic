@@ -218,7 +218,7 @@ class MMSConfig(object):
         'POSIX',
         '_LINUX',
       ]
-      cxx.linkflags += ['-shared']
+      cxx.linkflags += ['-shared', '-lelf']
       if cxx.family == 'gcc':
         cxx.linkflags += ['-static-libgcc']
     elif builder.target.platform == 'mac':
