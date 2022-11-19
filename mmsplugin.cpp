@@ -92,20 +92,38 @@ bool DynSchema::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	GET_V_IFACE_CURRENT(GetFileSystemFactory, filesystem, IFileSystem, FILESYSTEM_INTERFACE_VERSION);
 
 	SH_ADD_HOOK_MEMFUNC(IServerGameDLL, LevelInit, server, this, &DynSchema::Hook_LevelInitPost, true);
+	return true;
+}
 
+bool DynSchema::OnExtensionLoad(IExtension *me, IShareSys *sys, char *error, size_t maxlength, bool late) {
+	sharesys = sys;
+	myself = me;
+
+	/* Get the default interfaces from our configured SDK header */
+	if (!SM_AcquireInterfaces(error, maxlength)) {
+		return false;
+	}
+	
 	// get the base address of the server
+	{
 #if _WINDOWS
-	CWinLibInfo lib(server);
-	
-	lib.LocatePattern("\xE8\x2A\x2A\x2A\x2A\x83\xC0\x04\xC3", 9, (void**) &fnGetEconItemSchema);
-	lib.LocatePattern("\x55\x8B\xEC\x53\x8B\x5D\x08\x56\x8B\xF1\x8B\xCB\x57\xE8\x2A\x2A\x2A\x2A", 18, (void**) &fnItemAttributeInitFromKV);
+	fnGetEconItemSchema = reinterpret_cast<GetEconItemSchema_fn>(sm_memutils->FindPattern(server, "\xE8\x2A\x2A\x2A\x2A\x83\xC0\x04\xC3", 9));
+	fnItemAttributeInitFromKV = reinterpret_cast<CEconItemAttributeInitFromKV_fn>(sm_memutils->FindPattern(server, "\x55\x8B\xEC\x53\x8B\x5D\x08\x56\x8B\xF1\x8B\xCB\x57\xE8\x2A\x2A\x2A\x2A", 18));
 #elif _LINUX
-	CLinuxLibInfo lib(server);
-	
-	lib.LocateSymbol("_ZN28CEconItemAttributeDefinition11BInitFromKVEP9KeyValuesP10CUtlVectorI10CUtlString10CUtlMemoryIS3_iEE",
-			(void**) &fnItemAttributeInitFromKV);
-	lib.LocateSymbol("_Z15GEconItemSchemav", (void**) &fnGetEconItemSchema);
+		Dl_info info;
+		if (dladdr(server, &info) == 0) {
+			return 0;
+		}
+		void *handle = dlopen(info.dli_fname, RTLD_NOW);
+		if (!handle) {
+			return 0;
+		}
+		fnGetEconItemSchema = reinterpret_cast<GetEconItemSchema_fn>(sm_memutils->ResolveSymbol(handle, "_Z15GEconItemSchemav"));
+		fnItemAttributeInitFromKV = reinterpret_cast<CEconItemAttributeInitFromKV_fn>(sm_memutils->ResolveSymbol(handle, "_ZN28CEconItemAttributeDefinition11BInitFromKVEP9KeyValuesP10CUtlVectorI10CUtlString10CUtlMemoryIS3_iEE"));
+		
+		dlclose(handle);
 #endif
+	}
 	
 	if (!fnItemAttributeInitFromKV || !fnGetEconItemSchema) {
 		META_CONPRINTF("Failed to get GEIS or BIFKV\n");
@@ -317,18 +335,6 @@ const char *DynSchema::GetName() {
 
 const char *DynSchema::GetURL() {
 	return "https://git.csrd.science/";
-}
-
-bool DynSchema::OnExtensionLoad(IExtension *me, IShareSys *sys, char* error, size_t maxlength, bool late) {
-	sharesys = sys;
-	myself = me;
-
-	/* Get the default interfaces from our configured SDK header */
-	if (!SM_AcquireInterfaces(error, maxlength)) {
-		return false;
-	}
-	
-	return true;
 }
 
 void DynSchema::OnExtensionUnload() {
