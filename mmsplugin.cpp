@@ -112,21 +112,28 @@ bool DynSchema::OnExtensionLoad(IExtension *me, IShareSys *sys, char *error, siz
 #elif _LINUX
 		Dl_info info;
 		if (dladdr(server, &info) == 0) {
+			snprintf(error, maxlength, "dladdr failed");
 			return 0;
 		}
 		void *handle = dlopen(info.dli_fname, RTLD_NOW);
 		if (!handle) {
+			snprintf(error, maxlength, "Failed to dlopen server.");
 			return 0;
 		}
+		
 		fnGetEconItemSchema = reinterpret_cast<GetEconItemSchema_fn>(sm_memutils->ResolveSymbol(handle, "_Z15GEconItemSchemav"));
+		
 		fnItemAttributeInitFromKV = reinterpret_cast<CEconItemAttributeInitFromKV_fn>(sm_memutils->ResolveSymbol(handle, "_ZN28CEconItemAttributeDefinition11BInitFromKVEP9KeyValuesP10CUtlVectorI10CUtlString10CUtlMemoryIS3_iEE"));
 		
 		dlclose(handle);
 #endif
 	}
 	
-	if (!fnItemAttributeInitFromKV || !fnGetEconItemSchema) {
-		META_CONPRINTF("Failed to get GEIS or BIFKV\n");
+	if (fnGetEconItemSchema == nullptr) {
+		snprintf(error, maxlength, "Failed to setup call to GetEconItemSchema()");
+		return false;
+	} else if (fnItemAttributeInitFromKV == nullptr) {
+		snprintf(error, maxlength, "Failed to setup call to CEconItemAttributeDefinition::BInitFromKV");
 		return false;
 	}
 	
