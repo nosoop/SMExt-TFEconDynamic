@@ -66,8 +66,8 @@ static_assert(sizeof(CEconItemAttributeDefinition) + 0x14 == 0x58, "CEconItemAtt
 using AttributeMap = CUtlMap<int, CEconItemAttributeDefinition, int>;
 AttributeMap *g_SchemaAttributes;
 
-using GetEconItemSchemaFn_t = uintptr_t();
-GetEconItemSchemaFn_t *fnGetEconItemSchema = nullptr;
+typedef uintptr_t (*GetEconItemSchema_fn)(void);
+GetEconItemSchema_fn fnGetEconItemSchema = nullptr;
 
 // https://www.unknowncheats.me/wiki/Calling_Functions_From_Injected_Library_Using_Function_Pointers_in_C%2B%2B
 #ifdef WIN32
