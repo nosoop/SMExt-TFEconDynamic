@@ -16,6 +16,8 @@
 
 #include "memscan.h"
 
+#include <map>
+
 void BindToSourceMod();
 bool SM_LoadExtension(char *error, size_t maxlength);
 void SM_UnloadExtension();
@@ -69,6 +71,9 @@ static_assert(sizeof(CEconItemAttributeDefinition) + 0x14 == 0x58, "CEconItemAtt
 // pointer to item schema attribute map singleton
 using AttributeMap = CUtlMap<int, CEconItemAttributeDefinition, int>;
 AttributeMap *g_SchemaAttributes;
+
+size_t g_nAutoAttributeBase = 4000;
+std::map<std::string, int> g_AutoNumberedAttributes;
 
 typedef uintptr_t (*GetEconItemSchema_fn)(void);
 GetEconItemSchema_fn fnGetEconItemSchema = nullptr;
@@ -154,14 +159,32 @@ bool DynSchema::Unload(char *error, size_t maxlen) {
  * replaces the appropriate entry in the schema.
  */
 bool InsertOrReplaceAttribute(KeyValues *pAttribKV) {
-	/**
-	 * TODO implement special handling when "auto" is provided; use an autoincrementing value
-	 * that checks for a free slot in the attribute mapping, then internally map the attribute
-	 * name to that value for persistence and so we don't add that attribute multiple times
-	 */
-	int attrdef = atoi(pAttribKV->GetName());
-	if (attrdef <= 0) {
-		return false;
+	const char* attrID = pAttribKV->GetName();
+	const char* attrName = pAttribKV->GetString("name");
+	
+	int attrdef;
+	if (strcmp(attrID, "auto") == 0) {
+		/**
+		 * Have the plugin automatically allocate an attribute ID.
+		 * - if the name is already mapped to an ID, then use that
+		 * - otherwise, continue to increment our counter until we find an unused one
+		 */
+		auto search = g_AutoNumberedAttributes.find(attrName);
+		if (search != g_AutoNumberedAttributes.end()) {
+			attrdef = search->second;
+		} else {
+			while (g_SchemaAttributes->Find(g_nAutoAttributeBase) != g_SchemaAttributes->InvalidIndex()) {
+				g_nAutoAttributeBase++;
+			}
+			attrdef = g_nAutoAttributeBase;
+			g_AutoNumberedAttributes[attrName] = attrdef;
+		}
+	} else {
+		attrdef = atoi(attrID);
+		if (attrdef <= 0) {
+			META_CONPRINTF("Attribute '%s' has invalid index string '%s'\n", attrName, attrID);
+			return false;
+		}
 	}
 	
 	// only replace existing injected attributes; fail on schema attributes
@@ -200,15 +223,14 @@ bool DynSchema::Hook_LevelInitPost(const char *pMapName, char const *pMapEntitie
 	// always initialize attributes -- it's better than losing attributes on schema reinit
 	// coughhiddendevattributescough
 	
-	// collect raw attribute keyvalue entries scattered across files
-	KeyValues::AutoDelete rawAttributes("attributes");
-	
 	// read our own dynamic schema file -- this one supports other sections
 	KeyValues::AutoDelete pKVMainConfig("DynamicSchema");
 	if (pKVMainConfig->LoadFromFile(filesystem, buffer)) {
 		KeyValues *pKVAttributes = pKVMainConfig->FindKey( "attributes" );
 		if (pKVAttributes) {
-			rawAttributes->RecursiveMergeKeyValues(pKVAttributes);
+			FOR_EACH_TRUE_SUBKEY(pKVAttributes, kv) {
+				InsertOrReplaceAttribute(kv);
+			}
 			META_CONPRINTF("Successfully injected custom schema %s\n", buffer);
 		} else {
 			META_CONPRINTF("Failed to inject custom schema %s\n", buffer);
@@ -228,7 +250,9 @@ bool DynSchema::Hook_LevelInitPost(const char *pMapName, char const *pMapEntitie
 			KeyValues::AutoDelete nativeAttribConfig("attributes");
 			nativeAttribConfig->LoadFromFile(filesystem, pathbuf);
 			
-			rawAttributes->RecursiveMergeKeyValues(nativeAttribConfig);
+			FOR_EACH_TRUE_SUBKEY(nativeAttribConfig, kv) {
+				InsertOrReplaceAttribute(kv);
+			}
 			
 			META_CONPRINTF("Discovered custom schema %s\n", pathbuf);
 		}
@@ -238,11 +262,6 @@ bool DynSchema::Hook_LevelInitPost(const char *pMapName, char const *pMapEntitie
 	
 	// perhaps add some other validations before we actually process our attributes?
 	// TODO ensure the name doesn't clash with existing / newly injected attributes
-	
-	// finally process our attributes
-	FOR_EACH_TRUE_SUBKEY(rawAttributes, kv) {
-		InsertOrReplaceAttribute(kv);
-	}
 	
 	return true;
 }
