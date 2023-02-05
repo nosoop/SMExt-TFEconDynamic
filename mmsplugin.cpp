@@ -336,7 +336,7 @@ const char *DynSchema::GetLicense() {
 }
 
 const char *DynSchema::GetVersion() {
-	return "1.2.1";
+	return "1.3.0";
 }
 
 const char *DynSchema::GetDate() {
