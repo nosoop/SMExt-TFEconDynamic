@@ -14,8 +14,6 @@
 #include <KeyValues.h>
 #include <filesystem.h>
 
-#include "memscan.h"
-
 #include <map>
 
 void BindToSourceMod();

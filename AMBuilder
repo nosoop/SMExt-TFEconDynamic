@@ -5,7 +5,6 @@ proj_name = 'tf2dynschema'
 
 proj_srcs = [
   'mmsplugin.cpp',
-  'memscan.cpp',
   'smsdk_config.cpp',
 ]
 
