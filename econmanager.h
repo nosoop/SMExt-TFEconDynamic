@@ -3,6 +3,9 @@
 
 #include "mmsplugin.h"
 
+#include <map>
+#include <memory>
+
 #include <utlmap.h>
 #include <utlstring.h>
 #include <KeyValues.h>
@@ -39,11 +42,43 @@ public:
 	/* 0x40 */ string_t m_iszAttributeClass;
 };
 
-// handles 
+/**
+ * Copied implementation of KeyValues::AutoDelete.
+ */
+class AutoKeyValues {
+	public:
+	AutoKeyValues() : m_pKeyValues{nullptr} {}
+	
+	AutoKeyValues(KeyValues *pKeyValues) : m_pKeyValues{pKeyValues->MakeCopy()} {}
+	AutoKeyValues(const AutoKeyValues &other) : m_pKeyValues{other.m_pKeyValues->MakeCopy()} {}
+	
+	~AutoKeyValues() {
+		if (m_pKeyValues) {
+			m_pKeyValues->deleteThis();
+		}
+	}
+	
+	KeyValues *operator->() const { return m_pKeyValues; }
+	operator KeyValues *() const { return m_pKeyValues; }
+	
+	private:
+	KeyValues *m_pKeyValues;
+};
+
+/**
+ * Keeps a copy of existing schema items to inject.
+ */
 class CEconManager {
 	public:
+	CEconManager() : m_RegisteredAttributes{} {}
+	
 	bool Init(char *error, size_t maxlength);
 	bool InsertOrReplaceAttribute(KeyValues *pAttribKV);
+	bool RegisterAttribute(KeyValues *pAttribKV);
+	void InstallAttributes();
+	
+	private:
+	std::map<std::string, AutoKeyValues> m_RegisteredAttributes;
 };
 
 // binary refers to 0x58 when iterating over the attribute map, so we'll refer to that value

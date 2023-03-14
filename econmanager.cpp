@@ -9,7 +9,7 @@ using AttributeMap = CUtlMap<int, CEconItemAttributeDefinition, int>;
 AttributeMap *g_SchemaAttributes;
 
 size_t g_nAutoAttributeBase = 4000;
-std::map<std::string, int> g_AutoNumberedAttributes;
+std::map<std::string, int> g_AutoNumberedAttributes{};
 
 typedef uintptr_t (*GetEconItemSchema_fn)(void);
 GetEconItemSchema_fn fnGetEconItemSchema = nullptr;
@@ -115,4 +115,19 @@ bool CEconManager::InsertOrReplaceAttribute(KeyValues *pAttribKV) {
 	// TODO verify that this doesn't leak, or just shrug it off
 	g_SchemaAttributes->InsertOrReplace(attrdef, def);
 	return true;
+}
+
+bool CEconManager::RegisterAttribute(KeyValues* pAttribKV) {
+	// for some reason any KV pointers we store blows up
+	// don't have the energy to deal with this shit
+	AutoKeyValues kv{pAttribKV->MakeCopy()};
+	std::string attrName = kv->GetString("name");
+	this->m_RegisteredAttributes[attrName] = std::move(kv);
+	return true;
+}
+
+void CEconManager::InstallAttributes() {
+	for (const auto& pair : m_RegisteredAttributes) {
+		InsertOrReplaceAttribute(pair.second);
+	}
 }
