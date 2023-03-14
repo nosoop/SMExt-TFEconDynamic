@@ -72,6 +72,8 @@ extern SourceMod::IExtensionManager *smexts;
 extern SourceMod::IShareSys *sharesys;
 extern SourceMod::IExtension *myself;
 
+extern IServerGameDLL *server;
+
 PLUGIN_GLOBALVARS();
 
 #endif //_INCLUDE_METAMOD_SOURCE_STUB_PLUGIN_H_

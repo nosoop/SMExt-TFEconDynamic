@@ -8,10 +8,8 @@
 
 #include <stdio.h>
 #include "mmsplugin.h"
+#include "econmanager.h"
 
-#include <utlmap.h>
-#include <utlstring.h>
-#include <KeyValues.h>
 #include <filesystem.h>
 
 #include <map>
@@ -29,60 +27,6 @@ IVEngineServer *engine = NULL;
 IFileSystem *filesystem = nullptr;
 
 PLUGIN_EXPOSE(DynSchema, g_Plugin);
-
-class ISchemaAttributeType;
-
-// this may need to be updated in the future
-class CEconItemAttributeDefinition
-{
-public:
-	// TODO implementing ~CEconItemAttributeDefinition segfaults. not sure what's up.
-	// ideally we implement it to match the game so InsertOrReplace is sure to work correctly
-	
-	/* 0x00 */ KeyValues *m_KeyValues;
-	/* 0x04 */ unsigned short m_iIndex;
-	/* 0x08 */ ISchemaAttributeType *m_AttributeType;
-	/* 0x0c */ bool m_bHidden;
-	/* 0x0d */ bool m_bForceOutputDescription;
-	/* 0x0e */ bool m_bStoreAsInteger;
-	/* 0x0f */ bool m_bInstanceData;
-	/* 0x10 */ int m_iAssetClassExportType;
-	/* 0x14 */ int m_iAssetClassBucket;
-	/* 0x18 */ bool m_bIsSetBonus;
-	/* 0x1c */ int m_iIsUserGenerated;
-	/* 0x20 */ int m_iEffectType;
-	/* 0x24 */ int m_iDescriptionFormat;
-	/* 0x28 */ char *m_pszDescriptionString;
-	/* 0x2c */ char *m_pszArmoryDesc;
-	/* 0x30 */ char *m_pszName;
-	/* 0x34 */ char *m_pszAttributeClass;
-	/* 0x38 */ bool m_bCanAffectMarketName;
-	/* 0x39 */ bool m_bCanAffectRecipeCompName;
-	/* 0x3c */ int m_nTagHandle;
-	/* 0x40 */ string_t m_iszAttributeClass;
-};
-
-// binary refers to 0x58 when iterating over the attribute map, so we'll refer to that value
-// we could also do a runtime assertion
-static_assert(sizeof(CEconItemAttributeDefinition) + 0x14 == 0x58, "CEconItemAttributeDefinition size mismatch");
-
-// pointer to item schema attribute map singleton
-using AttributeMap = CUtlMap<int, CEconItemAttributeDefinition, int>;
-AttributeMap *g_SchemaAttributes;
-
-size_t g_nAutoAttributeBase = 4000;
-std::map<std::string, int> g_AutoNumberedAttributes;
-
-typedef uintptr_t (*GetEconItemSchema_fn)(void);
-GetEconItemSchema_fn fnGetEconItemSchema = nullptr;
-
-// https://www.unknowncheats.me/wiki/Calling_Functions_From_Injected_Library_Using_Function_Pointers_in_C%2B%2B
-#ifdef WIN32
-typedef bool (__thiscall *CEconItemAttributeInitFromKV_fn)(CEconItemAttributeDefinition* pThis, KeyValues* pAttributeKeys, CUtlVector<CUtlString>* pErrors);
-#elif defined(_LINUX)
-typedef bool (__cdecl *CEconItemAttributeInitFromKV_fn)(CEconItemAttributeDefinition* pThis, KeyValues* pAttributeKeys, CUtlVector<CUtlString>* pErrors);
-#endif
-CEconItemAttributeInitFromKV_fn fnItemAttributeInitFromKV = nullptr;
 
 const char* NATIVE_ATTRIB_DIR = "addons/sourcemod/configs/tf2nativeattribs";
 
@@ -106,105 +50,18 @@ bool DynSchema::OnExtensionLoad(IExtension *me, IShareSys *sys, char *error, siz
 	if (!SM_AcquireInterfaces(error, maxlength)) {
 		return false;
 	}
-	
-	// get the base address of the server
-	{
-#if _WINDOWS
-	fnGetEconItemSchema = reinterpret_cast<GetEconItemSchema_fn>(sm_memutils->FindPattern(server, "\xE8\x2A\x2A\x2A\x2A\x83\xC0\x04\xC3", 9));
-	fnItemAttributeInitFromKV = reinterpret_cast<CEconItemAttributeInitFromKV_fn>(sm_memutils->FindPattern(server, "\x55\x8B\xEC\x53\x8B\x5D\x08\x56\x8B\xF1\x8B\xCB\x57\xE8\x2A\x2A\x2A\x2A", 18));
-#elif _LINUX
-		Dl_info info;
-		if (dladdr(server, &info) == 0) {
-			snprintf(error, maxlength, "dladdr failed");
-			return 0;
-		}
-		void *handle = dlopen(info.dli_fname, RTLD_NOW);
-		if (!handle) {
-			snprintf(error, maxlength, "Failed to dlopen server.");
-			return 0;
-		}
-		
-		fnGetEconItemSchema = reinterpret_cast<GetEconItemSchema_fn>(sm_memutils->ResolveSymbol(handle, "_Z15GEconItemSchemav"));
-		
-		fnItemAttributeInitFromKV = reinterpret_cast<CEconItemAttributeInitFromKV_fn>(sm_memutils->ResolveSymbol(handle, "_ZN28CEconItemAttributeDefinition11BInitFromKVEP9KeyValuesP10CUtlVectorI10CUtlString10CUtlMemoryIS3_iEE"));
-		
-		dlclose(handle);
-#endif
-	}
-	
-	if (fnGetEconItemSchema == nullptr) {
-		snprintf(error, maxlength, "Failed to setup call to GetEconItemSchema()");
-		return false;
-	} else if (fnItemAttributeInitFromKV == nullptr) {
-		snprintf(error, maxlength, "Failed to setup call to CEconItemAttributeDefinition::BInitFromKV");
-		return false;
-	}
-	
-	// is this late enough in the MM:S load stage?  we might just have to hold the function
-	g_SchemaAttributes = reinterpret_cast<AttributeMap*>(fnGetEconItemSchema() + 0x1BC);
 
+	/* Prepare our manager */
+	if (!g_EconManager.Init(error, maxlength)) {
+		return false;
+	}
+	
 	return true;
 }
 
 bool DynSchema::Unload(char *error, size_t maxlen) {
 	SM_UnloadExtension();
 	SH_REMOVE_HOOK_MEMFUNC(IServerGameDLL, LevelInit, server, this, &DynSchema::Hook_LevelInitPost, true);
-	return true;
-}
-
-/**
- * Initializes a CEconItemAttributeDefinition from a KeyValues definition, then inserts or
- * replaces the appropriate entry in the schema.
- */
-bool InsertOrReplaceAttribute(KeyValues *pAttribKV) {
-	const char* attrID = pAttribKV->GetName();
-	const char* attrName = pAttribKV->GetString("name");
-	
-	int attrdef;
-	if (strcmp(attrID, "auto") == 0) {
-		/**
-		 * Have the plugin automatically allocate an attribute ID.
-		 * - if the name is already mapped to an ID, then use that
-		 * - otherwise, continue to increment our counter until we find an unused one
-		 */
-		auto search = g_AutoNumberedAttributes.find(attrName);
-		if (search != g_AutoNumberedAttributes.end()) {
-			attrdef = search->second;
-		} else {
-			while (g_SchemaAttributes->Find(g_nAutoAttributeBase) != g_SchemaAttributes->InvalidIndex()) {
-				g_nAutoAttributeBase++;
-			}
-			attrdef = g_nAutoAttributeBase;
-			g_AutoNumberedAttributes[attrName] = attrdef;
-		}
-	} else {
-		attrdef = atoi(attrID);
-		if (attrdef <= 0) {
-			META_CONPRINTF("Attribute '%s' has invalid index string '%s'\n", attrName, attrID);
-			return false;
-		}
-	}
-	
-	// only replace existing injected attributes; fail on schema attributes
-	auto existingIndex = g_SchemaAttributes->Find(attrdef);
-	if (existingIndex != g_SchemaAttributes->InvalidIndex()) {
-		auto &existingAttr = g_SchemaAttributes->Element(existingIndex);
-		if (!existingAttr.m_KeyValues->GetBool("injected")) {
-			META_CONPRINTF("WARN: Not overriding native attribute '%s'\n",
-					existingAttr.m_pszName);
-			return false;
-		}
-	}
-	
-	// embed additional custom data into attribute KV; econdata and the like can deal with this
-	// one could also add this data into the file itself, but this leaves less room for error
-	pAttribKV->SetBool("injected", true);
-	
-	CEconItemAttributeDefinition def;
-	fnItemAttributeInitFromKV(&def, pAttribKV, nullptr);
-	
-	// TODO verify that this doesn't leak, or just shrug it off
-	g_SchemaAttributes->InsertOrReplace(attrdef, def);
 	return true;
 }
 

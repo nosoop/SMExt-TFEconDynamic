@@ -6,6 +6,7 @@ proj_name = 'tf2dynschema'
 proj_srcs = [
   'mmsplugin.cpp',
   'smsdk_config.cpp',
+  'econmanager.cpp',
 ]
 
 proj_c_flags = [
