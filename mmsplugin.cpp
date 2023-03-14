@@ -84,7 +84,7 @@ bool DynSchema::Hook_LevelInitPost(const char *pMapName, char const *pMapEntitie
 		KeyValues *pKVAttributes = pKVMainConfig->FindKey( "attributes" );
 		if (pKVAttributes) {
 			FOR_EACH_TRUE_SUBKEY(pKVAttributes, kv) {
-				InsertOrReplaceAttribute(kv);
+				g_EconManager.InsertOrReplaceAttribute(kv);
 			}
 			META_CONPRINTF("Successfully injected custom schema %s\n", buffer);
 		} else {
@@ -106,7 +106,7 @@ bool DynSchema::Hook_LevelInitPost(const char *pMapName, char const *pMapEntitie
 			nativeAttribConfig->LoadFromFile(filesystem, pathbuf);
 			
 			FOR_EACH_TRUE_SUBKEY(nativeAttribConfig, kv) {
-				InsertOrReplaceAttribute(kv);
+				g_EconManager.InsertOrReplaceAttribute(kv);
 			}
 			
 			META_CONPRINTF("Discovered custom schema %s\n", pathbuf);

@@ -43,13 +43,12 @@ public:
 class CEconManager {
 	public:
 	bool Init(char *error, size_t maxlength);
+	bool InsertOrReplaceAttribute(KeyValues *pAttribKV);
 };
 
 // binary refers to 0x58 when iterating over the attribute map, so we'll refer to that value
 // we could also do a runtime assertion
 static_assert(sizeof(CEconItemAttributeDefinition) + 0x14 == 0x58, "CEconItemAttributeDefinition size mismatch");
-
-extern bool InsertOrReplaceAttribute(KeyValues *pAttribKV);
 
 extern CEconManager g_EconManager;
 

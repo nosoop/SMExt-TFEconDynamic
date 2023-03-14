@@ -65,7 +65,7 @@ bool CEconManager::Init(char *error, size_t maxlength) {
  * Initializes a CEconItemAttributeDefinition from a KeyValues definition, then inserts or
  * replaces the appropriate entry in the schema.
  */
-bool InsertOrReplaceAttribute(KeyValues *pAttribKV) {
+bool CEconManager::InsertOrReplaceAttribute(KeyValues *pAttribKV) {
 	const char* attrID = pAttribKV->GetName();
 	const char* attrName = pAttribKV->GetString("name");
 	
