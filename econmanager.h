@@ -47,7 +47,7 @@ public:
  */
 class AutoKeyValues {
 	public:
-	AutoKeyValues() : m_pKeyValues{nullptr} {}
+	AutoKeyValues() : m_pKeyValues{new KeyValues("auto")} {}
 	
 	AutoKeyValues(KeyValues *pKeyValues) : m_pKeyValues{pKeyValues->MakeCopy()} {}
 	AutoKeyValues(const AutoKeyValues &other) : m_pKeyValues{other.m_pKeyValues->MakeCopy()} {}
@@ -57,6 +57,13 @@ class AutoKeyValues {
 		// if (m_pKeyValues) {
 			// m_pKeyValues->deleteThis();
 		// }
+	}
+	
+	void Assign(KeyValues *pKeyValues) {
+		if (m_pKeyValues) {
+			m_pKeyValues->deleteThis();
+		}
+		m_pKeyValues = pKeyValues->MakeCopy();
 	}
 	
 	KeyValues *operator->() const { return m_pKeyValues; }

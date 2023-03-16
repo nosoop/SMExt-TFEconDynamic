@@ -6,6 +6,7 @@ projectName = 'tf2econdynamic'
 sourceFiles = [
   'mmsplugin.cpp',
   'econmanager.cpp',
+  'natives.cpp',
 ]
 
 ###############
