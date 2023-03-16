@@ -1,17 +1,13 @@
 # vim: set ts=8 sts=2 sw=2 tw=99 et ft=python:
 import os
 
-mms_plugin_directory = 'addons/dynattrs'
-
 # This is where the files will be output to
 # package is the default
 builder.SetBuildFolder('package')
 
 # Add any folders you need to this list
 folder_list = [
-  mms_plugin_directory + '/bin',
-  
-  'addons/metamod', ## !CHANGEME! if you want to add the VDF loader
+  'addons/sourcemod/extensions',
   'addons/sourcemod/gamedata',
 ]
 
@@ -30,14 +26,14 @@ def CopyFiles(src, dest, files):
     source_path = os.path.join(builder.sourcePath, src, source_file)
     builder.AddCopy(source_path, dest_entry)
 
-CopyFiles('', 'addons/metamod', [
-  'tf2dynschema.vdf', ## !CHANGEME! if you want to add the VDF loader
-])
-
 CopyFiles('gamedata', 'addons/sourcemod/gamedata', [
   'tf2.econ_dynamic.txt',
 ])
 
+CopyFiles('', 'addons/sourcemod/extensions', [
+  'tf2econdynamic.autoload',
+])
+
 # Copy binaries.
-for cxx_task in MMS.binaries:
-  builder.AddCopy(cxx_task.binary, folder_map[mms_plugin_directory + '/bin'])
+for cxx_task in Extension.extensions:
+  builder.AddCopy(cxx_task.binary, folder_map['addons/sourcemod/extensions'])

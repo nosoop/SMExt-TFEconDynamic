@@ -1,5 +1,0 @@
-"Metamod Plugin"
-{
-	"alias"		"dynschema"
-	"file"		"addons/dynattrs/bin/tf2dynschema_mm"
-}

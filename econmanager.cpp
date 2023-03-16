@@ -28,7 +28,7 @@ bool CEconManager::Init(char *error, size_t maxlength) {
 	// get the base address of the server
 	
 	SourceMod::IGameConfig *conf;
-	if (!sm_gameconfs->LoadGameConfigFile("tf2.econ_dynamic", &conf, error, maxlength)) {
+	if (!gameconfs->LoadGameConfigFile("tf2.econ_dynamic", &conf, error, maxlength)) {
 		return false;
 	}
 	
@@ -40,7 +40,7 @@ bool CEconManager::Init(char *error, size_t maxlength) {
 		return false;
 	}
 	
-	sm_gameconfs->CloseGameConfigFile(conf);
+	gameconfs->CloseGameConfigFile(conf);
 	
 	// is this late enough in the MM:S load stage?  we might just have to hold the function
 	g_SchemaAttributes = reinterpret_cast<AttributeMap*>(fnGetEconItemSchema() + 0x1BC);
