@@ -118,8 +118,6 @@ bool CEconManager::InsertOrReplaceAttribute(KeyValues *pAttribKV) {
 }
 
 bool CEconManager::RegisterAttribute(KeyValues* pAttribKV) {
-	// for some reason any KV pointers we store blows up
-	// don't have the energy to deal with this shit
 	AutoKeyValues kv{pAttribKV->MakeCopy()};
 	std::string attrName = kv->GetString("name");
 	this->m_RegisteredAttributes[attrName] = std::move(kv);

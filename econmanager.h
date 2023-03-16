@@ -53,9 +53,10 @@ class AutoKeyValues {
 	AutoKeyValues(const AutoKeyValues &other) : m_pKeyValues{other.m_pKeyValues->MakeCopy()} {}
 	
 	~AutoKeyValues() {
-		if (m_pKeyValues) {
-			m_pKeyValues->deleteThis();
-		}
+		// TODO: figure out why doing this blows up the server
+		// if (m_pKeyValues) {
+			// m_pKeyValues->deleteThis();
+		// }
 	}
 	
 	KeyValues *operator->() const { return m_pKeyValues; }
