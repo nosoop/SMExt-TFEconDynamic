@@ -12,6 +12,7 @@ folder_list = [
   mms_plugin_directory + '/bin',
   
   'addons/metamod', ## !CHANGEME! if you want to add the VDF loader
+  'addons/sourcemod/gamedata',
 ]
 
 # Create the distribution folder hierarchy.
@@ -31,6 +32,10 @@ def CopyFiles(src, dest, files):
 
 CopyFiles('', 'addons/metamod', [
   'tf2dynschema.vdf', ## !CHANGEME! if you want to add the VDF loader
+])
+
+CopyFiles('gamedata', 'addons/sourcemod/gamedata', [
+  'tf2.econ_dynamic.txt',
 ])
 
 # Copy binaries.

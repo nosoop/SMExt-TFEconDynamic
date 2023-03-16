@@ -1,5 +1,7 @@
 #include "econmanager.h"
 
+#include <IGameConfigs.h>
+
 #include <map>
 
 CEconManager g_EconManager;
@@ -24,37 +26,21 @@ CEconItemAttributeInitFromKV_fn fnItemAttributeInitFromKV = nullptr;
 
 bool CEconManager::Init(char *error, size_t maxlength) {
 	// get the base address of the server
-	{
-#if _WINDOWS
-	fnGetEconItemSchema = reinterpret_cast<GetEconItemSchema_fn>(sm_memutils->FindPattern(server, "\xE8\x2A\x2A\x2A\x2A\x83\xC0\x04\xC3", 9));
-	fnItemAttributeInitFromKV = reinterpret_cast<CEconItemAttributeInitFromKV_fn>(sm_memutils->FindPattern(server, "\x55\x8B\xEC\x53\x8B\x5D\x08\x56\x8B\xF1\x8B\xCB\x57\xE8\x2A\x2A\x2A\x2A", 18));
-#elif _LINUX
-		Dl_info info;
-		if (dladdr(server, &info) == 0) {
-			snprintf(error, maxlength, "dladdr failed");
-			return 0;
-		}
-		void *handle = dlopen(info.dli_fname, RTLD_NOW);
-		if (!handle) {
-			snprintf(error, maxlength, "Failed to dlopen server.");
-			return 0;
-		}
-		
-		fnGetEconItemSchema = reinterpret_cast<GetEconItemSchema_fn>(sm_memutils->ResolveSymbol(handle, "_Z15GEconItemSchemav"));
-		
-		fnItemAttributeInitFromKV = reinterpret_cast<CEconItemAttributeInitFromKV_fn>(sm_memutils->ResolveSymbol(handle, "_ZN28CEconItemAttributeDefinition11BInitFromKVEP9KeyValuesP10CUtlVectorI10CUtlString10CUtlMemoryIS3_iEE"));
-		
-		dlclose(handle);
-#endif
+	
+	SourceMod::IGameConfig *conf;
+	if (!sm_gameconfs->LoadGameConfigFile("tf2.econ_dynamic", &conf, error, maxlength)) {
+		return false;
 	}
 	
-	if (fnGetEconItemSchema == nullptr) {
+	if (!conf->GetMemSig("GEconItemSchema()", (void**) &fnGetEconItemSchema)) {
 		snprintf(error, maxlength, "Failed to setup call to GetEconItemSchema()");
 		return false;
-	} else if (fnItemAttributeInitFromKV == nullptr) {
+	} else if (!conf->GetMemSig("CEconItemAttributeDefinition::BInitFromKV()", (void**) &fnItemAttributeInitFromKV)) {
 		snprintf(error, maxlength, "Failed to setup call to CEconItemAttributeDefinition::BInitFromKV");
 		return false;
 	}
+	
+	sm_gameconfs->CloseGameConfigFile(conf);
 	
 	// is this late enough in the MM:S load stage?  we might just have to hold the function
 	g_SchemaAttributes = reinterpret_cast<AttributeMap*>(fnGetEconItemSchema() + 0x1BC);

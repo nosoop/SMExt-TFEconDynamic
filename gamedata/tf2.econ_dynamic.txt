@@ -1,0 +1,22 @@
+"Games"
+{
+	"tf"
+	{
+		"Signatures"
+		{
+			"GEconItemSchema()"
+			{
+				// taken straight from tf2attributes
+				"library"	"server"
+				"linux"		"@_Z15GEconItemSchemav"
+				"windows"	"\xE8\x2A\x2A\x2A\x2A\x83\xC0\x04\xC3"
+			}
+			"CEconItemAttributeDefinition::BInitFromKV()"
+			{
+				"library"	"server"
+				"linux"		"@_ZN28CEconItemAttributeDefinition11BInitFromKVEP9KeyValuesP10CUtlVectorI10CUtlString10CUtlMemoryIS3_iEE"
+				"windows"	"\x55\x8B\xEC\x53\x8B\x5D\x08\x56\x8B\xF1\x8B\xCB\x57\xE8\x2A\x2A\x2A\x2A"
+			}
+		}
+	}
+}
