@@ -120,6 +120,14 @@ bool CEconManager::InsertOrReplaceAttribute(KeyValues *pAttribKV) {
 bool CEconManager::RegisterAttribute(KeyValues* pAttribKV) {
 	AutoKeyValues kv{pAttribKV->MakeCopy()};
 	std::string attrName = kv->GetString("name");
+	if (attrName.empty()) {
+		attrName = kv->GetString("attribute_class");
+		if (attrName.empty()) {
+			return false;
+		}
+		kv->SetString("name", attrName.c_str());
+	}
+	
 	this->m_RegisteredAttributes[attrName] = std::move(kv);
 	return true;
 }
