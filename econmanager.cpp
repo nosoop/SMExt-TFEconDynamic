@@ -52,8 +52,9 @@ bool CEconManager::Init(char *error, size_t maxlength) {
  * replaces the appropriate entry in the schema.
  */
 bool CEconManager::InsertOrReplaceAttribute(KeyValues *pAttribKV) {
-	const char* attrID = pAttribKV->GetName();
-	const char* attrName = pAttribKV->GetString("name");
+	KeyValues::AutoDelete attribute{pAttribKV->MakeCopy()};
+	const char* attrID = attribute->GetName();
+	const char* attrName = attribute->GetString("name");
 	
 	int attrdef;
 	if (strcmp(attrID, "auto") == 0) {
@@ -80,6 +81,8 @@ bool CEconManager::InsertOrReplaceAttribute(KeyValues *pAttribKV) {
 		}
 	}
 	
+	attribute->SetName(std::to_string(attrdef).c_str());
+	
 	// only replace existing injected attributes; fail on schema attributes
 	auto existingIndex = g_SchemaAttributes->Find(attrdef);
 	if (existingIndex != g_SchemaAttributes->InvalidIndex()) {
@@ -93,10 +96,10 @@ bool CEconManager::InsertOrReplaceAttribute(KeyValues *pAttribKV) {
 	
 	// embed additional custom data into attribute KV; econdata and the like can deal with this
 	// one could also add this data into the file itself, but this leaves less room for error
-	pAttribKV->SetBool("injected", true);
+	attribute->SetBool("injected", true);
 	
 	CEconItemAttributeDefinition def;
-	fnItemAttributeInitFromKV(&def, pAttribKV, nullptr);
+	fnItemAttributeInitFromKV(&def, attribute, nullptr);
 	
 	// TODO verify that this doesn't leak, or just shrug it off
 	g_SchemaAttributes->InsertOrReplace(attrdef, def);
