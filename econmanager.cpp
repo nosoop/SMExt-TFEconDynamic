@@ -107,7 +107,7 @@ bool CEconManager::InsertOrReplaceAttribute(KeyValues *pAttribKV) {
 }
 
 bool CEconManager::RegisterAttribute(KeyValues* pAttribKV) {
-	AutoKeyValues kv{pAttribKV->MakeCopy()};
+	AutoKeyValues kv{pAttribKV};
 	std::string attrName = kv->GetString("name");
 	if (attrName.empty()) {
 		attrName = kv->GetString("attribute_class");
