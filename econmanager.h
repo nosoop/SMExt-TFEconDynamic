@@ -44,6 +44,7 @@ public:
 
 /**
  * Copied implementation of KeyValues::AutoDelete.
+ * This implementation creates copies of any KeyValues pointers passed into it.
  */
 class AutoKeyValues {
 	public:
@@ -52,11 +53,19 @@ class AutoKeyValues {
 	AutoKeyValues(KeyValues *pKeyValues) : m_pKeyValues{pKeyValues->MakeCopy()} {}
 	AutoKeyValues(const AutoKeyValues &other) : m_pKeyValues{other.m_pKeyValues->MakeCopy()} {}
 	
+	/**
+	 * Copy assignment.  The contents of the KeyValues* needs to be copied; the default
+	 * implementation seems to cause a use-after-free.
+	 */
+	AutoKeyValues& operator =(const AutoKeyValues &other) {
+		this->Assign(other);
+		return *this;
+	}
+	
 	~AutoKeyValues() {
-		// TODO: figure out why doing this blows up the server
-		// if (m_pKeyValues) {
-			// m_pKeyValues->deleteThis();
-		// }
+		if (m_pKeyValues) {
+			m_pKeyValues->deleteThis();
+		}
 	}
 	
 	void Assign(KeyValues *pKeyValues) {
