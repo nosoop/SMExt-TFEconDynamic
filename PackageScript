@@ -30,10 +30,6 @@ CopyFiles('gamedata', 'addons/sourcemod/gamedata', [
   'tf2.econ_dynamic.txt',
 ])
 
-CopyFiles('', 'addons/sourcemod/extensions', [
-  'tf2econdynamic.autoload',
-])
-
 # Copy binaries.
 for cxx_task in Extension.extensions:
   builder.AddCopy(cxx_task.binary, folder_map['addons/sourcemod/extensions'])
