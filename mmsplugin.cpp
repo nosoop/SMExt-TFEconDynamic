@@ -24,7 +24,7 @@ bool DynSchema::SDK_OnLoad(char *error, size_t maxlen, bool late)
 	SH_ADD_HOOK_MEMFUNC(IServerGameDLL, LevelInit, gamedll, this, &DynSchema::Hook_LevelInitPost, true);
 
 	sharesys->AddNatives(myself, g_EconAttributeNatives);
-	g_EconInjectedAttributeType = g_pHandleSys->CreateType("EconInjectedAttribute", &g_EconInjectedAttributeHandler, 0, NULL, NULL, myself->GetIdentity(), NULL);
+	g_EconInjectedAttributeType = g_pHandleSys->CreateType("EconDynAttr", &g_EconInjectedAttributeHandler, 0, NULL, NULL, myself->GetIdentity(), NULL);
 
 	/* Prepare our manager */
 	if (!g_EconManager.Init(error, maxlen)) {

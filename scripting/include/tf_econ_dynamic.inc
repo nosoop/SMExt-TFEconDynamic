@@ -2,16 +2,16 @@
  * An InjectedAttribute is an abstraction over the KeyValues representation of an attribute
  * definition.
  */
-methodmap EconInjectedAttribute < Handle {
+methodmap TF2EconDynAttribute < Handle {
 	/**
-	 * Creates a new, empty EconInjectedAttribute handle.
+	 * Creates a new, empty TF2EconDynAttribute handle.
 	 * 
-	 * The attribute is not injected into the schema until EconInjectedAttribute.Register() is
+	 * The attribute is not injected into the schema until TF2EconDynAttribute.Register() is
 	 * called.
 	 * 
 	 * This handle should be freed by the calling plugin.
 	 */
-	public native EconInjectedAttribute();
+	public native TF2EconDynAttribute();
 	
 	/**
 	 * Sets the attribute class.  All values under the same attribute class are combined.
@@ -70,9 +70,9 @@ methodmap EconInjectedAttribute < Handle {
 	/**
 	 * Stores a copy of the attribute properties in the core plugin to be injected.
 	 * 
-	 * This operation does not clear existing values on the EconInjectedAttribute, so you can
-	 * create multiple attributes by repeatedly calling EconInjectedAttribute.SetName() and
-	 * EconInjectedAttribute.Register().
+	 * This operation does not clear existing values on the TF2EconDynAttribute, so you can
+	 * create multiple attributes by repeatedly calling TF2EconDynAttribute.SetName() and
+	 * TF2EconDynAttribute.Register().
 	 * 
 	 * If an attribute with the same name already exists and is not an injected attribute
 	 * managed by the core plugin, this will fail.
@@ -83,7 +83,7 @@ methodmap EconInjectedAttribute < Handle {
 	public native bool Register();
 	
 	/**
-	 * Imports the properties of an attribute by name to the EconInjectedAttribute handle,
+	 * Imports the properties of an attribute by name to the TF2EconDynAttribute handle,
 	 * replacing all values currently set.
 	 * 
 	 * @return    True if the attribute exists, otherwise false.

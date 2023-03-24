@@ -27,7 +27,7 @@ cell_t sm_EconAttributeCreate(IPluginContext *pContext, const cell_t *params) {
 			pContext->GetIdentity(), myself->GetIdentity(), NULL);
 }
 
-// void EconInjectedAttribute.SetClass(const char[] attrClass)
+// void TF2EconDynAttribute.SetClass(const char[] attrClass)
 cell_t sm_EconAttributeSetClass(IPluginContext *pContext, const cell_t *params) {
 	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
 	HandleError err;
@@ -36,7 +36,7 @@ cell_t sm_EconAttributeSetClass(IPluginContext *pContext, const cell_t *params) 
 	
 	AutoKeyValues *pContainer = nullptr;
 	if ((err = g_pHandleSys->ReadHandle(hndl, g_EconInjectedAttributeType, &sec, (void**) &pContainer)) != HandleError_None) {
-		return pContext->ThrowNativeError("Invalid EconInjectedAttribute handle %x (error: %d)", hndl, err);
+		return pContext->ThrowNativeError("Invalid TF2EconDynAttribute handle %x (error: %d)", hndl, err);
 	}
 	
 	char *value;
@@ -46,7 +46,7 @@ cell_t sm_EconAttributeSetClass(IPluginContext *pContext, const cell_t *params) 
 	return 0;
 }
 
-// void EconInjectedAttribute.SetName(const char[] attrName)
+// void TF2EconDynAttribute.SetName(const char[] attrName)
 cell_t sm_EconAttributeSetName(IPluginContext *pContext, const cell_t *params) {
 	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
 	HandleError err;
@@ -55,7 +55,7 @@ cell_t sm_EconAttributeSetName(IPluginContext *pContext, const cell_t *params) {
 	
 	AutoKeyValues *pContainer = nullptr;
 	if ((err = g_pHandleSys->ReadHandle(hndl, g_EconInjectedAttributeType, &sec, (void**) &pContainer)) != HandleError_None) {
-		return pContext->ThrowNativeError("Invalid EconInjectedAttribute handle %x (error: %d)", hndl, err);
+		return pContext->ThrowNativeError("Invalid TF2EconDynAttribute handle %x (error: %d)", hndl, err);
 	}
 	
 	char *value;
@@ -65,7 +65,7 @@ cell_t sm_EconAttributeSetName(IPluginContext *pContext, const cell_t *params) {
 	return 0;
 }
 
-// void EconInjectedAttribute.SetDescriptionFormat(const char[] attrDescFmt)
+// void TF2EconDynAttribute.SetDescriptionFormat(const char[] attrDescFmt)
 cell_t sm_EconAttributeSetDescriptionFormat(IPluginContext *pContext, const cell_t *params) {
 	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
 	HandleError err;
@@ -74,7 +74,7 @@ cell_t sm_EconAttributeSetDescriptionFormat(IPluginContext *pContext, const cell
 	
 	AutoKeyValues *pContainer = nullptr;
 	if ((err = g_pHandleSys->ReadHandle(hndl, g_EconInjectedAttributeType, &sec, (void**) &pContainer)) != HandleError_None) {
-		return pContext->ThrowNativeError("Invalid EconInjectedAttribute handle %x (error: %d)", hndl, err);
+		return pContext->ThrowNativeError("Invalid TF2EconDynAttribute handle %x (error: %d)", hndl, err);
 	}
 	
 	char *value;
@@ -84,7 +84,7 @@ cell_t sm_EconAttributeSetDescriptionFormat(IPluginContext *pContext, const cell
 	return 0;
 }
 
-// void EconInjectedAttribute.SetCustom(const char[] key, const char[] value)
+// void TF2EconDynAttribute.SetCustom(const char[] key, const char[] value)
 cell_t sm_EconAttributeSetCustomKeyValue(IPluginContext *pContext, const cell_t *params) {
 	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
 	HandleError err;
@@ -93,7 +93,7 @@ cell_t sm_EconAttributeSetCustomKeyValue(IPluginContext *pContext, const cell_t 
 	
 	AutoKeyValues *pContainer = nullptr;
 	if ((err = g_pHandleSys->ReadHandle(hndl, g_EconInjectedAttributeType, &sec, (void**) &pContainer)) != HandleError_None) {
-		return pContext->ThrowNativeError("Invalid EconInjectedAttribute handle %x (error: %d)", hndl, err);
+		return pContext->ThrowNativeError("Invalid TF2EconDynAttribute handle %x (error: %d)", hndl, err);
 	}
 	
 	char *key, *value;
@@ -104,7 +104,7 @@ cell_t sm_EconAttributeSetCustomKeyValue(IPluginContext *pContext, const cell_t 
 	return 0;
 }
 
-// void EconInjectedAttribute.SetDefIndex(int attrdef)
+// void TF2EconDynAttribute.SetDefIndex(int attrdef)
 cell_t sm_EconAttributeSetDefIndex(IPluginContext *pContext, const cell_t *params) {
 	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
 	HandleError err;
@@ -113,7 +113,7 @@ cell_t sm_EconAttributeSetDefIndex(IPluginContext *pContext, const cell_t *param
 	
 	AutoKeyValues *pContainer = nullptr;
 	if ((err = g_pHandleSys->ReadHandle(hndl, g_EconInjectedAttributeType, &sec, (void**) &pContainer)) != HandleError_None) {
-		return pContext->ThrowNativeError("Invalid EconInjectedAttribute handle %x (error: %d)", hndl, err);
+		return pContext->ThrowNativeError("Invalid TF2EconDynAttribute handle %x (error: %d)", hndl, err);
 	}
 	
 	(*pContainer)->SetName(std::to_string(params[2]).c_str());
@@ -121,7 +121,7 @@ cell_t sm_EconAttributeSetDefIndex(IPluginContext *pContext, const cell_t *param
 	return 0;
 }
 
-// void EconInjectedAttribute.ClearDefIndex()
+// void TF2EconDynAttribute.ClearDefIndex()
 cell_t sm_EconAttributeClearDefIndex(IPluginContext *pContext, const cell_t *params) {
 	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
 	HandleError err;
@@ -130,7 +130,7 @@ cell_t sm_EconAttributeClearDefIndex(IPluginContext *pContext, const cell_t *par
 	
 	AutoKeyValues *pContainer = nullptr;
 	if ((err = g_pHandleSys->ReadHandle(hndl, g_EconInjectedAttributeType, &sec, (void**) &pContainer)) != HandleError_None) {
-		return pContext->ThrowNativeError("Invalid EconInjectedAttribute handle %x (error: %d)", hndl, err);
+		return pContext->ThrowNativeError("Invalid TF2EconDynAttribute handle %x (error: %d)", hndl, err);
 	}
 	
 	(*pContainer)->SetName("auto");
@@ -138,7 +138,7 @@ cell_t sm_EconAttributeClearDefIndex(IPluginContext *pContext, const cell_t *par
 	return 0;
 }
 
-// bool EconInjectedAttribute.Register()
+// bool TF2EconDynAttribute.Register()
 cell_t sm_EconAttributeRegister(IPluginContext *pContext, const cell_t *params) {
 	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
 	HandleError err;
@@ -147,7 +147,7 @@ cell_t sm_EconAttributeRegister(IPluginContext *pContext, const cell_t *params) 
 	
 	AutoKeyValues *pContainer = nullptr;
 	if ((err = g_pHandleSys->ReadHandle(hndl, g_EconInjectedAttributeType, &sec, (void**) &pContainer)) != HandleError_None) {
-		return pContext->ThrowNativeError("Invalid EconInjectedAttribute handle %x (error: %d)", hndl, err);
+		return pContext->ThrowNativeError("Invalid TF2EconDynAttribute handle %x (error: %d)", hndl, err);
 	}
 	
 	
@@ -157,7 +157,7 @@ cell_t sm_EconAttributeRegister(IPluginContext *pContext, const cell_t *params) 
 	return true;
 }
 
-// void EconInjectedAttribute.Clear();
+// void TF2EconDynAttribute.Clear();
 cell_t sm_EconAttributeClear(IPluginContext *pContext, const cell_t *params) {
 	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
 	HandleError err;
@@ -166,7 +166,7 @@ cell_t sm_EconAttributeClear(IPluginContext *pContext, const cell_t *params) {
 	
 	AutoKeyValues *pContainer = nullptr;
 	if ((err = g_pHandleSys->ReadHandle(hndl, g_EconInjectedAttributeType, &sec, (void**) &pContainer)) != HandleError_None) {
-		return pContext->ThrowNativeError("Invalid EconInjectedAttribute handle %x (error: %d)", hndl, err);
+		return pContext->ThrowNativeError("Invalid TF2EconDynAttribute handle %x (error: %d)", hndl, err);
 	}
 	
 	KeyValues::AutoDelete empty("auto");

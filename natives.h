@@ -55,15 +55,15 @@ cell_t sm_EconAttributeRegister(IPluginContext *pContext, const cell_t *params);
 cell_t sm_EconAttributeClear(IPluginContext *pContext, const cell_t *params);
 
 const sp_nativeinfo_t g_EconAttributeNatives[] = {
-	{ "EconInjectedAttribute.EconInjectedAttribute", sm_EconAttributeCreate },
-	{ "EconInjectedAttribute.SetClass", sm_EconAttributeSetClass },
-	{ "EconInjectedAttribute.SetName", sm_EconAttributeSetName },
-	{ "EconInjectedAttribute.SetDescriptionFormat", sm_EconAttributeSetDescriptionFormat },
-	{ "EconInjectedAttribute.SetCustom", sm_EconAttributeSetCustomKeyValue },
-	{ "EconInjectedAttribute.SetDefIndex", sm_EconAttributeSetDefIndex },
-	{ "EconInjectedAttribute.ClearDefIndex", sm_EconAttributeClearDefIndex },
-	{ "EconInjectedAttribute.Register", sm_EconAttributeRegister },
-	{ "EconInjectedAttribute.Clear", sm_EconAttributeClear },
+	{ "TF2EconDynAttribute.TF2EconDynAttribute", sm_EconAttributeCreate },
+	{ "TF2EconDynAttribute.SetClass", sm_EconAttributeSetClass },
+	{ "TF2EconDynAttribute.SetName", sm_EconAttributeSetName },
+	{ "TF2EconDynAttribute.SetDescriptionFormat", sm_EconAttributeSetDescriptionFormat },
+	{ "TF2EconDynAttribute.SetCustom", sm_EconAttributeSetCustomKeyValue },
+	{ "TF2EconDynAttribute.SetDefIndex", sm_EconAttributeSetDefIndex },
+	{ "TF2EconDynAttribute.ClearDefIndex", sm_EconAttributeClearDefIndex },
+	{ "TF2EconDynAttribute.Register", sm_EconAttributeRegister },
+	{ "TF2EconDynAttribute.Clear", sm_EconAttributeClear },
 	
 	{NULL, NULL},
 };

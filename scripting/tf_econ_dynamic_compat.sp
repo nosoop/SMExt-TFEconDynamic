@@ -19,10 +19,10 @@ public Plugin myinfo = {
 	url = "https://github.com/nosoop/SMExt-TFEconDynamic"
 }
 
-static EconInjectedAttribute s_AttributeContext;
+static TF2EconDynAttribute s_AttributeContext;
 
 public void OnPluginStart() {
-	s_AttributeContext = new EconInjectedAttribute();
+	s_AttributeContext = new TF2EconDynAttribute();
 	
 	CreateAttributeConfigParsers();
 }
