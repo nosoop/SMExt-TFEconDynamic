@@ -10,6 +10,7 @@ folder_list = [
   'addons/sourcemod/extensions',
   'addons/sourcemod/gamedata',
   'addons/sourcemod/plugins',
+  'addons/sourcemod/scripting/include',
 ]
 
 # Create the distribution folder hierarchy.
@@ -29,6 +30,10 @@ def CopyFiles(src, dest, files):
 
 CopyFiles('gamedata', 'addons/sourcemod/gamedata', [
   'tf2.econ_dynamic.txt',
+])
+
+CopyFiles('scripting/include', 'addons/sourcemod/scripting/include', [
+  'tf_econ_dynamic.inc',
 ])
 
 # Copy binaries.
