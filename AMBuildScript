@@ -1,5 +1,6 @@
 # vim: set sts=2 ts=8 sw=2 tw=99 et ft=python:
 import os, sys
+import shutil
 
 # Simple extensions do not need to modify this file.
 
@@ -68,9 +69,12 @@ class ExtensionConfig(object):
     self.sdks = {}
     self.binaries = []
     self.extensions = []
+    self.plugins = {}
     self.generated_headers = None
     self.mms_root = None
     self.sm_root = None
+    self.spcomp_path = None
+    self.spcomp_bin = None
 
   @property
   def tag(self):
@@ -122,6 +126,15 @@ class ExtensionConfig(object):
         self.mms_root = ResolveEnvPath('MMSOURCE', 'metamod-source')
       if not self.mms_root:
         self.mms_root = ResolveEnvPath('MMSOURCE_DEV', 'mmsource-central')
+
+    self.spcomp_path = builder.options.spcomp_path
+    if not self.spcomp_path or not os.path.isdir(self.spcomp_path):
+      spcomp_found = shutil.which("spcomp")
+      if not spcomp_found:
+        raise Exception('Could not find a path for spcomp')
+      self.spcomp_path = os.path.dirname(spcomp_found)
+    self.spcomp_path = Normalize(self.spcomp_path)
+    self.spcomp_bin = shutil.which('spcomp', path = self.spcomp_path)
 
     if not self.mms_root or not os.path.isdir(self.mms_root):
       raise Exception('Could not find a source copy of Metamod:Source')

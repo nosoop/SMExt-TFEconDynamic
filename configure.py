@@ -19,5 +19,7 @@ builder.options.add_option('--enable-optimize', action='store_const', const='1',
 builder.options.add_option('-s', '--sdks', default='all', dest='sdks',
                        help='Build against specified SDKs; valid args are "all", "present", or '
                             'comma-delimited list of engine names (default: %default)')
+builder.options.add_option('--spcomp-path', type=str, dest='spcomp_path', default=None,
+                           help='Path to directory containing spcomp')
 
 builder.Configure()
