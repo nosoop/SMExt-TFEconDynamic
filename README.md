@@ -1,7 +1,7 @@
-# Econ Dynamic
+# TF2 Econ Dynamic
 
 Provides a scripting interface to inject new attributes to TF2's in-memory schema.  Sort of
-like Hidden Dev Attributes but more flexible.
+like [Hidden Dev Attributes][] but more flexible.
 
 Intended to be the successor to the [Custom Attribute Framework][]; plugins should use
 [tf2attributes][] in tandem with this extension.
@@ -11,10 +11,21 @@ recognized on the client even if they match an existing attribute class.
 
 [Custom Attribute Framework]: https://github.com/nosoop/SM-TFCustAttr
 [tf2attributes]: https://github.com/FlaminSarge/tf2attributes
+[Hidden Dev Attributes]: https://forums.alliedmods.net/showthread.php?t=326853
 
-## Example
+## Installation
 
-```
+[Grab the latest release][release] and copy the `addons` directory.
+
+The release includes `tf_econ_dynamic_compat.smx`, a plugin to read configurations designed
+for [Hidden Dev Attributes][].  You can also change the section headers to "auto" for attributes
+to be automatically allocated to unused definition indices.
+
+[release]: https://github.com/nosoop/SMExt-TFEconDynamic/releases
+
+## Plugin Example
+
+```sourcepawn
 #include <sdkhooks>
 #include <tf2attributes>
 #include <tf_econ_dynamic>
