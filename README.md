@@ -32,9 +32,10 @@ to be automatically allocated to unused definition indices.
 
 public void OnPluginStart() {
 	// register a new attribute class
+	// to avoid conflicts with other plugins, consider namespacing it
 	TF2EconDynAttribute attrib = new TF2EconDynAttribute();
 	attrib.SetName("gravity decreased");
-	attrib.SetClass("mult_gravity");
+	attrib.SetClass("mycustom.mult_gravity");
 	
 	// this determines how attributes are combined (added, multiplied, etc.)
 	attrib.SetDescriptionFormat("value_is_percentage");
@@ -57,7 +58,7 @@ public void OnPluginStart() {
 // callbacks below are stubs
 void OnGroundEntChangedPost(int client) {
 	// determine the gravity effect
-	SetEntityGravity(client, TF2Attrib_HookValueFloat(1.0, "mult_gravity", client));
+	SetEntityGravity(client, TF2Attrib_HookValueFloat(1.0, "mycustom.mult_gravity", client));
 }
 
 void OnTakeDamage(int victim) {
