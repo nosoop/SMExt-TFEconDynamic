@@ -40,6 +40,13 @@ public:
 	/* 0x39 */ bool m_bCanAffectRecipeCompName;
 	/* 0x3c */ int m_nTagHandle;
 	/* 0x40 */ string_t m_iszAttributeClass;
+	
+	~CEconItemAttributeDefinition() {
+		if (m_KeyValues) {
+			m_KeyValues->deleteThis();
+		}
+		m_KeyValues = nullptr;
+	}
 };
 
 /**
