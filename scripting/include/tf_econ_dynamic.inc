@@ -86,10 +86,9 @@ methodmap TF2EconDynAttribute < Handle {
 	 * Imports the properties of an attribute by name to the TF2EconDynAttribute handle,
 	 * replacing all values currently set.
 	 * 
-	 * @return    True if the attribute exists, otherwise false.
+	 * @return    True if an attribute with that name exists, otherwise false.
 	 */
-	// TODO this isn't implemented yet
-	// public native bool Import(const char[] name);
+	public native bool Import(const char[] name);
 	
 	/**
 	 * Resets the container to its initial state.

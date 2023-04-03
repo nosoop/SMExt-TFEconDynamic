@@ -174,3 +174,28 @@ cell_t sm_EconAttributeClear(IPluginContext *pContext, const cell_t *params) {
 	
 	return 0;
 }
+
+// bool TF2EconDynAttribute.Import(const char[] name);
+cell_t sm_EconAttributeImport(IPluginContext *pContext, const cell_t *params) {
+	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
+	HandleError err;
+	
+	Handle_t hndl = static_cast<Handle_t>(params[1]);
+	
+	AutoKeyValues *pContainer = nullptr;
+	if ((err = g_pHandleSys->ReadHandle(hndl, g_EconInjectedAttributeType, &sec, (void**) &pContainer)) != HandleError_None) {
+		return pContext->ThrowNativeError("Invalid TF2EconDynAttribute handle %x (error: %d)", hndl, err);
+	}
+	
+	char *name;
+	pContext->LocalToString(params[2], &name);
+	
+	KeyValues *pKeyValues = g_EconManager.GetAttributeDefinitionKeyValuesByName(name);
+	if (!pKeyValues) {
+		return false;
+	}
+	
+	pContainer->Assign(pKeyValues);
+	
+	return true;
+}

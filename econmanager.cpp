@@ -126,3 +126,19 @@ void CEconManager::InstallAttributes() {
 		InsertOrReplaceAttribute(pair.second);
 	}
 }
+
+KeyValues *CEconManager::GetAttributeDefinitionKeyValuesByName(const char *name) {
+	if (!name) {
+		return nullptr;
+	}
+	
+	FOR_EACH_MAP_FAST( (*g_SchemaAttributes), i ) {
+		if (!(*g_SchemaAttributes)[i].m_pszName) {
+			continue;
+		}
+		if (stricmp((*g_SchemaAttributes)[i].m_pszName, name) == 0) {
+			return (*g_SchemaAttributes)[i].m_KeyValues;
+		}
+	}
+	return nullptr;
+}

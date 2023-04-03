@@ -52,6 +52,7 @@ cell_t sm_EconAttributeSetCustomKeyValue(IPluginContext *pContext, const cell_t 
 cell_t sm_EconAttributeSetDefIndex(IPluginContext *pContext, const cell_t *params);
 cell_t sm_EconAttributeClearDefIndex(IPluginContext *pContext, const cell_t *params);
 cell_t sm_EconAttributeRegister(IPluginContext *pContext, const cell_t *params);
+cell_t sm_EconAttributeImport(IPluginContext *pContext, const cell_t *params);
 cell_t sm_EconAttributeClear(IPluginContext *pContext, const cell_t *params);
 
 const sp_nativeinfo_t g_EconAttributeNatives[] = {
@@ -63,6 +64,7 @@ const sp_nativeinfo_t g_EconAttributeNatives[] = {
 	{ "TF2EconDynAttribute.SetDefIndex", sm_EconAttributeSetDefIndex },
 	{ "TF2EconDynAttribute.ClearDefIndex", sm_EconAttributeClearDefIndex },
 	{ "TF2EconDynAttribute.Register", sm_EconAttributeRegister },
+	{ "TF2EconDynAttribute.Import", sm_EconAttributeImport },
 	{ "TF2EconDynAttribute.Clear", sm_EconAttributeClear },
 	
 	{NULL, NULL},

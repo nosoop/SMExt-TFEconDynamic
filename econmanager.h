@@ -93,6 +93,7 @@ class CEconManager {
 	bool InsertOrReplaceAttribute(KeyValues *pAttribKV);
 	bool RegisterAttribute(KeyValues *pAttribKV);
 	void InstallAttributes();
+	KeyValues *GetAttributeDefinitionKeyValuesByName(const char *name);
 	
 	private:
 	std::map<std::string, AutoKeyValues> m_RegisteredAttributes;
