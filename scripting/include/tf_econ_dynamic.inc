@@ -1,5 +1,5 @@
 /**
- * An InjectedAttribute is an abstraction over the KeyValues representation of an attribute
+ * An TF2EconDynAttribute is an abstraction over the KeyValues representation of an attribute
  * definition.
  */
 methodmap TF2EconDynAttribute < Handle {
@@ -63,7 +63,8 @@ methodmap TF2EconDynAttribute < Handle {
 	public native void SetDefIndex(int attrdef);
 	
 	/**
-	 * Clears the attribute's specified definition index.
+	 * Clears the attribute's specified definition index, allowing subsequent registrations to
+	 * be allocated.
 	 */
 	public native void ClearDefIndex();
 	
@@ -79,6 +80,9 @@ methodmap TF2EconDynAttribute < Handle {
 	 * 
 	 * The attribute definition index may be reallocated if a new copy of the schema is loaded
 	 * in and the index is occupied by a non-injected attribute.
+	 * 
+	 * @return    True if the attribute was registered in the extension's internal list and
+	 *            injected in the current active schema; false if either operation fails.
 	 */
 	public native bool Register();
 	
