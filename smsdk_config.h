@@ -40,7 +40,7 @@
 /* Basic information exposed publicly */
 #define SMEXT_CONF_NAME			"TF2 Econ Dynamic"
 #define SMEXT_CONF_DESCRIPTION	"Injects user-defined content into the game schema"
-#define SMEXT_CONF_VERSION		"0.0.3"
+#define SMEXT_CONF_VERSION		"0.1.0"
 #define SMEXT_CONF_AUTHOR		"nosoop"
 #define SMEXT_CONF_URL			"https://github.com/nosoop/SMExt-TFEconDynamic"
 #define SMEXT_CONF_LOGTAG		"dynschema"
