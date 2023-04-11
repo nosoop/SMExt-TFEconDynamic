@@ -47,8 +47,8 @@ public void OnPluginStart() {
 	attrib.SetName("gravity increased");
 	attrib.Register();
 	
-	// you could also allocate new attributes to avoid updating existing ones
-	attrib.SetClass("mult_player_movespeed");
+	// you could also allocate new attributes based on existing ones
+	attrib.Import("major move speed bonus");
 	attrib.SetName("move speed bonus in combat");
 	attrib.Register();
 	
