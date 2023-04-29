@@ -48,7 +48,9 @@ public void OnPluginStart() {
 	attrib.Register();
 	
 	// you could also allocate new attributes based on existing ones
+	// the definition index should be reset
 	attrib.Import("major move speed bonus");
+	attrib.ClearDefIndex();
 	attrib.SetName("move speed bonus in combat");
 	attrib.Register();
 	

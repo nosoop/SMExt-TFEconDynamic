@@ -64,7 +64,7 @@ methodmap TF2EconDynAttribute < Handle {
 	
 	/**
 	 * Clears the attribute's specified definition index, allowing subsequent registrations to
-	 * be allocated.
+	 * be allocated to unused indices.
 	 */
 	public native void ClearDefIndex();
 	
@@ -89,6 +89,9 @@ methodmap TF2EconDynAttribute < Handle {
 	/**
 	 * Imports the properties of an attribute by name to the TF2EconDynAttribute handle,
 	 * replacing all values currently set.
+	 * 
+	 * Note that the definition index will be updated to the value from the imported attribute.
+	 * You will want to update the assigned value using SetDefIndex or ClearDefIndex.
 	 * 
 	 * @return    True if an attribute with that name exists, otherwise false.
 	 */
