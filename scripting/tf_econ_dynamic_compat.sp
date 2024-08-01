@@ -203,4 +203,5 @@ void LoadAttributes() {
 					filename);
 		}
 	}
+	delete list;
 }
