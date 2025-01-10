@@ -1,3 +1,9 @@
+#if defined __tf_econ_dyn_included
+	#endinput
+#endif
+
+#define __tf_econ_dyn_included
+
 /**
  * An TF2EconDynAttribute is an abstraction over the KeyValues representation of an attribute
  * definition.
