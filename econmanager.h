@@ -7,6 +7,7 @@
 #include <memory>
 
 #include <utlmap.h>
+#include <utlvector.h>
 #include <utlstring.h>
 #include <KeyValues.h>
 
@@ -94,6 +95,7 @@ class CEconManager {
 	bool RegisterAttribute(KeyValues *pAttribKV);
 	void InstallAttributes();
 	KeyValues *GetAttributeDefinitionKeyValuesByName(const char *name);
+	void SyncAttributeVector();
 	
 	private:
 	std::map<std::string, AutoKeyValues> m_RegisteredAttributes;

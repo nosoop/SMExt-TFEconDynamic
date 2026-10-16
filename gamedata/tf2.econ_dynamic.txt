@@ -2,6 +2,30 @@
 {
 	"tf"
 	{
+		"Offsets"
+		{
+			"CEconItemSchema::m_mapAttributes"
+			{
+				"linux"		"472"
+				"linux64"	"632"
+				"windows"	"472"
+				"windows64"	"632"
+			}
+			"CEconItemSchema::m_mapAttributeNames"
+			{
+				"linux"		"508"
+				"linux64"	"680"
+				"windows"	"508"
+				"windows64"	"680"
+			}
+			"CEconItemSchema::m_vecAttributeDefinitions"
+			{
+				"linux"		"544"
+				"linux64"	"728"
+				"windows"	"544"
+				"windows64"	"728"
+			}
+		}
 		"Signatures"
 		{
 			"GEconItemSchema()"
