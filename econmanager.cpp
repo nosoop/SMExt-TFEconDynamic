@@ -4,17 +4,24 @@
 
 #include <map>
 
-#ifdef PLATFORM_64BITS
-	#define OFFS_M_ATTRIBUTES 0x250
-#else
-	#define OFFS_M_ATTRIBUTES 0x1BC
-#endif
-
 CEconManager g_EconManager;
+
+// CEconItemSchema member offsets, resolved from gamedata (tf2.econ_dynamic).
+int g_iOffsM_Attributes;
+int g_iOffsM_AttributeNameIndex;
+int g_iOffsM_AttributeVector;
 
 // pointer to item schema attribute map singleton
 using AttributeMap = CUtlMap<int, CEconItemAttributeDefinition, int>;
 AttributeMap *g_SchemaAttributes;
+
+// pointer to the schema's name -> attribute map element index lookup table
+using AttributeNameMap = CUtlMap<const char *, int, int>;
+AttributeNameMap *g_SchemaAttributeNameIndex;
+
+// pointer to the schema's flat def-index -> attribute definition lookup vector
+using AttributeVector = CUtlVector<CEconItemAttributeDefinition *>;
+AttributeVector *g_SchemaAttributeVector;
 
 size_t g_nAutoAttributeBase = 4000;
 std::map<std::string, int> g_AutoNumberedAttributes{};
@@ -44,12 +51,23 @@ bool CEconManager::Init(char *error, size_t maxlength) {
 	} else if (!conf->GetMemSig("CEconItemAttributeDefinition::BInitFromKV()", (void**) &fnItemAttributeInitFromKV)) {
 		snprintf(error, maxlength, "Failed to setup call to CEconItemAttributeDefinition::BInitFromKV");
 		return false;
+	} else if (!conf->GetOffset("CEconItemSchema::m_mapAttributes", &g_iOffsM_Attributes)) {
+		snprintf(error, maxlength, "Failed to get offset CEconItemSchema::m_mapAttributes");
+		return false;
+	} else if (!conf->GetOffset("CEconItemSchema::m_mapAttributeNames", &g_iOffsM_AttributeNameIndex)) {
+		snprintf(error, maxlength, "Failed to get offset CEconItemSchema::m_mapAttributeNames");
+		return false;
+	} else if (!conf->GetOffset("CEconItemSchema::m_vecAttributeDefinitions", &g_iOffsM_AttributeVector)) {
+		snprintf(error, maxlength, "Failed to get offset CEconItemSchema::m_vecAttributeDefinitions");
+		return false;
 	}
 	
 	gameconfs->CloseGameConfigFile(conf);
 	
 	// is this late enough in the MM:S load stage?  we might just have to hold the function
-	g_SchemaAttributes = reinterpret_cast<AttributeMap*>(fnGetEconItemSchema() + OFFS_M_ATTRIBUTES);
+	g_SchemaAttributes = reinterpret_cast<AttributeMap*>(fnGetEconItemSchema() + g_iOffsM_Attributes);
+	g_SchemaAttributeNameIndex = reinterpret_cast<AttributeNameMap*>(fnGetEconItemSchema() + g_iOffsM_AttributeNameIndex);
+	g_SchemaAttributeVector = reinterpret_cast<AttributeVector*>(fnGetEconItemSchema() + g_iOffsM_AttributeVector);
 	return true;
 }
 
@@ -108,8 +126,58 @@ bool CEconManager::InsertOrReplaceAttribute(KeyValues *pAttribKV) {
 	fnItemAttributeInitFromKV(&def, attribute, nullptr);
 	
 	// TODO verify that this doesn't leak, or just shrug it off
-	g_SchemaAttributes->InsertOrReplace(attrdef, def);
+	auto insertedIndex = g_SchemaAttributes->InsertOrReplace(attrdef, def);
+	
+	// Since TF2 11087207, name-based schema lookups consult a secondary map that
+	// is built alongside m_mapAttributes.  Register the injected attribute there so
+	// plugins that resolve attributes by name (e.g. tf2attributes) can find it.
+	if (insertedIndex != g_SchemaAttributes->InvalidIndex()) {
+		const char *pszDefinitionName = g_SchemaAttributes->Element(insertedIndex).m_pszName;
+		if (pszDefinitionName) {
+			g_SchemaAttributeNameIndex->InsertOrReplace(pszDefinitionName, insertedIndex);
+		}
+	}
+	
+	// GetAttributeDefinition() caches pointers into m_mapAttributes, which we may
+	// have just reallocated; rebuild its contents from the map.
+	SyncAttributeVector();
 	return true;
+}
+
+/**
+ * Rebuilds the schema's flat def-index -> definition lookup vector from the
+ * attribute map.  The vector holds pointers into m_mapAttributes, so it has to be
+ * refreshed after any mutation of the map (TF2 11138802+).
+ */
+void CEconManager::SyncAttributeVector() {
+	if (!g_SchemaAttributeVector) {
+		return;
+	}
+	
+	int maxIndex = -1;
+	FOR_EACH_MAP_FAST((*g_SchemaAttributes), i) {
+		const int index = g_SchemaAttributes->Key(i);
+		if (index > maxIndex) {
+			maxIndex = index;
+		}
+	}
+	if (maxIndex < 0) {
+		return;
+	}
+	
+	const int count = maxIndex + 1;
+	if (g_SchemaAttributeVector->Count() < count) {
+		g_SchemaAttributeVector->SetCount(count);
+	}
+	
+	for (int i = 0; i < g_SchemaAttributeVector->Count(); ++i) {
+		(*g_SchemaAttributeVector)[i] = nullptr;
+	}
+	
+	FOR_EACH_MAP_FAST((*g_SchemaAttributes), i) {
+		const int index = g_SchemaAttributes->Key(i);
+		(*g_SchemaAttributeVector)[index] = &g_SchemaAttributes->Element(i);
+	}
 }
 
 bool CEconManager::RegisterAttribute(KeyValues* pAttribKV) {
