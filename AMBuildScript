@@ -386,6 +386,10 @@ class ExtensionConfig(ScriptingMixin, object):
       os.path.join(self.mms_root, 'core', 'sourcehook'),
     ]
 
+    khook_include = os.path.join(self.mms_root, 'third_party', 'khook', 'include')
+    if os.path.isdir(khook_include):
+      compiler.cxxincludes += [khook_include]
+
     for other_sdk in self.sdk_manifests:
       compiler.defines += ['SE_{}={}'.format(other_sdk['define'], other_sdk['code'])]
 
