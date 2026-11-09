@@ -3,6 +3,7 @@
 #include <IGameConfigs.h>
 
 #include <map>
+#include <string.h>
 
 CEconManager g_EconManager;
 
@@ -134,7 +135,16 @@ bool CEconManager::InsertOrReplaceAttribute(KeyValues *pAttribKV) {
 	if (insertedIndex != g_SchemaAttributes->InvalidIndex()) {
 		const char *pszDefinitionName = g_SchemaAttributes->Element(insertedIndex).m_pszName;
 		if (pszDefinitionName) {
-			g_SchemaAttributeNameIndex->InsertOrReplace(pszDefinitionName, insertedIndex);
+			// The schema's name lookup table owns heap copies of its keys and
+			// frees them in CEconItemSchema::Reset()/BInitAttributes().  The map
+			// element's m_pszName points into its KeyValues, so insert an owned
+			// copy instead of handing the engine an interior pointer to free.
+			auto existing = g_SchemaAttributeNameIndex->Find(pszDefinitionName);
+			if (existing != g_SchemaAttributeNameIndex->InvalidIndex()) {
+				(*g_SchemaAttributeNameIndex)[existing] = insertedIndex;
+			} else if (char *pszOwnedName = strdup(pszDefinitionName)) {
+				g_SchemaAttributeNameIndex->Insert(pszOwnedName, insertedIndex);
+			}
 		}
 	}
 	
