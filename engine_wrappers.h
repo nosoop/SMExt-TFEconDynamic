@@ -24,8 +24,6 @@ extern CGlobalVars *gpGlobals;
 #error "Metamod:Source 1.6 API is not supported on the old engine."
 #endif
 
-#define ENGINE_CALL(func) SH_CALL(engine, &IVEngineServer::func)
-
 /**
  * Wrap some API calls for legacy MM:S.
  */
